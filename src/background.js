@@ -17,16 +17,16 @@ chrome.runtime.onMessage.addListener(
             await chrome.storage.local.set({ state: false });
             isOn = false;
             clearInterval(interval);
-          }, 1000);
+          }, 400);
         } else if (url !== new URL(checkTab.url).origin) {
           setTimeout(async () => {
             await chrome.storage.local.set({ state: false });
             isOn = false;
             clearInterval(interval);
-          }, 1000);
+          }, 400);
           clearInterval(interval);
         }
-      }, 4000);
+      }, 3000);
       newTabEvent = await chrome.tabs.onCreated.addListener(
         async (noInfoTab) => {
           await chrome.tabs.update(mainTab.id, { active: true });
