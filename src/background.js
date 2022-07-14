@@ -9,6 +9,24 @@ chrome.runtime.onMessage.addListener(
       const mainTab = tabs[0];
       const url = new URL(mainTab?.url)?.origin;
       console.log(url);
+      let interval = setInterval(async () => {
+        let queryOptions = { active: true, currentWindow: true };
+        let [checkTab] = await chrome.tabs.query(queryOptions);
+        if (mainTab.id !== checkTab.id) {
+          setTimeout(async () => {
+            await chrome.storage.local.set({ state: false });
+            isOn = false;
+            clearInterval(interval);
+          }, 1000);
+        } else if (url !== new URL(checkTab.url).origin) {
+          setTimeout(async () => {
+            await chrome.storage.local.set({ state: false });
+            isOn = false;
+            clearInterval(interval);
+          }, 1000);
+          clearInterval(interval);
+        }
+      }, 4000);
       newTabEvent = await chrome.tabs.onCreated.addListener(
         async (noInfoTab) => {
           await chrome.tabs.update(mainTab.id, { active: true });
