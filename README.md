@@ -9,4 +9,4 @@
 
 #### OR
 
-- Download the extension from the [https://chrome.google.com/webstore/detail/redirect-stopper/egmgebeelgaakhaoodlmnimbfemfgdah?hl=en](Chrome Web Store)
+- Download the extension from the [Chrome Web Store](https://chrome.google.com/webstore/detail/redirect-stopper/egmgebeelgaakhaoodlmnimbfemfgdah?hl=en)
