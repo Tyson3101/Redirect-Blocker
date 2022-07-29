@@ -44,7 +44,12 @@ async function startRedirectStopper() {
   );
   newTabEvent = await chrome.tabs.onCreated.addListener(async (noInfoTab) => {
     if (isOn && (await chrome.tabs.query({ active: false })).length > 0) {
-      await chrome.tabs.update(mainTab.id, { active: true }).catch((e) => e);
+      await chrome.storage.local.get(["state"], async (state) => {
+        if (!state)
+          await chrome.tabs
+            .update(mainTab.id, { active: true })
+            .catch((e) => e);
+      });
       updatedNewTabEvent = await chrome.tabs.onUpdated.addListener(
         async (_, __, tab) => {
           if (noInfoTab.id === tab.id && noInfoTab.id !== mainTab.id) {
