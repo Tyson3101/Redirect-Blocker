@@ -1,12 +1,8 @@
 # Redirect Stopper
 
-#### Redirect Stopper saves you from facing potential malicious/annoying redirects when on specific websites. For example, when…
-
-#### This google extension saves you from facing potential malicious/annoying redirects when on specific websites.
+#### Redirect Stopper saves you from facing potential malicious/annoying redirects when on specific websites.
 
 #### For example, when on websites like Soap2day or other similar sites, you have to fight for your life closing and avoiding redirects to get to the page wanted, but with this extension, it is easy as pie, but also a more pleasant experience.
-
-#### To turn it on just click the extension icon and a popup will appear, you will be able to turn the extension on there, and... tada! Viruses, frustration and valuable time is magically saved.
 
 ## How to download?
 
@@ -19,3 +15,7 @@
 - Enable "Developer mode",
 - Click "Load unpacked extension",
 - Select the `extension` folder from this repo.
+
+## How to turn it on?
+
+#### To turn it on just click the extension icon and a popup will appear, you will be able to turn the extension on.
