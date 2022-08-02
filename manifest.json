@@ -5,6 +5,7 @@
   "background": {
     "service_worker": "./src/background.js"
   },
+  "description": "Redirect Stopper saves you from facing potential malicious/annoying redirects.",
   "icons": {
     "16": "./img/Icon16.png",
     "32": "./img/Icon32.png",
@@ -15,5 +16,6 @@
     "default_popup": "/src/popup/popup.html",
     "default_title": "Redirect Stopper"
   },
-  "permissions": ["tabs", "activeTab", "storage"]
+  "permissions": ["tabs", "storage"],
+  "homepage_url": "https://github.com/Tyson3101"
 }

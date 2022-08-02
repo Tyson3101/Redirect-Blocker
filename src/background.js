@@ -37,8 +37,9 @@ async function startRedirectStopper() {
   console.log("Main Tab: " + url + " " + mainTab.id);
   newWindowEvent = await chrome.windows.onCreated.addListener(
     async (window) => {
-      if ((await chrome.tabs.query({ active: false }).length) > 0) {
-        chrome.windows.remove(window.id);
+      let checkTabs = await chrome.tabs.query({ id: mainTab.id });
+      if (!checkTabs[0]) {
+        await chrome.windows.remove(window.id);
       }
     }
   );
