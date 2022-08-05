@@ -7,7 +7,7 @@ const toggleBtn = document.querySelector("button");
   });
 })();
 
-toggleBtn.addEventListener("click", async (ele) => {
+toggleBtn.addEventListener("click", async () => {
   await chrome.storage.local.get(["state"], async (result) => {
     if (!result.state) await toggleOn();
     else await toggleOff();

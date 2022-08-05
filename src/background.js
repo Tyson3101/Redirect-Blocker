@@ -1,10 +1,5 @@
 let isOn = false;
-let mainTab;
-let url;
-let newWindowEvent;
-let newTabEvent;
-let updatedNewTabEvent;
-let updateMainTabEvent;
+let mainTab, url, newWindowEvent, newTabEvent, updatedNewTabEvent;
 
 const blockedURL = "chrome://";
 
@@ -18,7 +13,7 @@ const blockedURL = "chrome://";
   });
 })();
 
-chrome.runtime.onMessage.addListener(({ state }, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener(({ state }) => {
   if (state) {
     startRedirectStopper();
   } else {
@@ -33,18 +28,16 @@ async function startRedirectStopper() {
   let tabs = await chrome.tabs.query(queryOptions);
   mainTab = tabs[0];
   url = new URL(mainTab.url).origin;
-  if (url.includes(blockedURL)) return await turnOff(true);
-  console.log("Main Tab: " + url + " " + mainTab.id);
+  if (!url || !mainTab) return await turnOff(true);
   newWindowEvent = await chrome.windows.onCreated.addListener(
     async (window) => {
-      let checkTabs = await chrome.tabs.query({ id: mainTab.id });
-      if (!checkTabs[0]) {
+      if ((await chrome.tabs.query({})).length > 1) {
         await chrome.windows.remove(window.id);
       }
     }
   );
   newTabEvent = await chrome.tabs.onCreated.addListener(async (noInfoTab) => {
-    if (isOn && (await chrome.tabs.query({ active: false })).length > 0) {
+    if (isOn && (await chrome.tabs.query({})).length >= 1) {
       await chrome.storage.local.get(["state"], async (state) => {
         if (!state)
           await chrome.tabs
@@ -55,13 +48,15 @@ async function startRedirectStopper() {
         async (_, __, tab) => {
           if (noInfoTab.id === tab.id && noInfoTab.id !== mainTab.id) {
             try {
-              if (new URL(tab.url).origin !== url)
+              if (
+                new URL(tab.url).origin !== url ||
+                new URL(tab.url).origin.includes(blockedURL)
+              )
                 await chrome.tabs.remove(tab.id);
               else await chrome.tabs.update(tab.id, { active: true });
-            } catch {
-              console.log("Tab Closed.");
-            }
+            } catch {}
           }
+          await chrome.tabs.onUpdated.removeListener(updatedNewTabEvent);
         }
       );
     }
@@ -71,9 +66,19 @@ async function startRedirectStopper() {
 async function turnOff(localStorage = false) {
   isOn = false;
   await chrome.tabs.onCreated.removeListener(newTabEvent);
-  await chrome.tabs.onUpdated.removeListener(updatedNewTabEvent);
   await chrome.windows.onCreated.removeListener(newWindowEvent);
   if (localStorage) {
-    await chrome.storage.local.set({ state: false });
+    await chrome.storage.local.get(["state"], async ({ state }) => {
+      if (state) await chrome.storage.local.set({ state: false });
+      return;
+    });
   }
+  return;
 }
+
+setInterval(async () => {
+  if ((await chrome.tabs.query({})).length <= 0) {
+    turnOff(true);
+  }
+  return;
+}, 200);
