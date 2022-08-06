@@ -14,7 +14,7 @@
 - Open Chrome and go to `chrome://extensions`,
 - Enable "Developer mode",
 - Click "Load unpacked extension",
-- Select the `extension` folder from this repo.
+- Select the downloaded folder.
 
 ## How to turn it on?
 
