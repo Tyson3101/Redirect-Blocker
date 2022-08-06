@@ -30,7 +30,9 @@ async function startRedirectStopper() {
   newWindowEvent = await chrome.windows.onCreated.addListener(
     async (window) => {
       if ((await chrome.tabs.query({})).length > 1) {
-        await chrome.windows.update(mainTab.windowId).catch((e) => e);
+        await chrome.windows
+          .update(mainTab.windowId, { active: true })
+          .catch((e) => e);
         await chrome.windows.remove(window.id).catch((e) => e);
       }
     }
