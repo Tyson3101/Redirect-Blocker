@@ -1,0 +1,106 @@
+<html>
+  <style>
+    * {
+      text-align: center;
+    }
+    body {
+      min-width: 300px;
+      padding: 1em 1em;
+      padding-bottom: 0em;
+      background-color: rgb(194, 221, 229);
+    }
+    h1 {
+      font-size: 2.2rem;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .desc {
+      display: block; 
+      position: relative;
+      top: -20px;
+    }
+
+    #adChrome {
+      margin-top: 0;
+      padding-top: 0;
+      bottom: 0;
+      position: relative;
+    }
+
+    button {
+      cursor: pointer;
+    }
+    .toggleBtn {
+      border: 1px solid black;
+      height: 20vh;
+      width: 50vw;
+      font-size: 1.5rem;
+    }
+    .off {
+      background-color: rgb(157, 231, 157);
+    }
+    .on {
+      background-color: rgb(243, 139, 139);
+    }
+    .off:hover {
+      background-color: rgb(135, 196, 135);
+    }
+    .on:hover {
+      background-color: rgb(205, 119, 119);
+    }
+
+    .shortCuts {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      margin-top: 0.2rem;
+      margin-bottom: 1.2em;
+    }
+
+    .shortCut {
+      border: 1px solid black;
+      background-color: rgb(165, 195, 204);
+      width: fit-content;
+      margin-bottom: 0.2rem;
+      position: absolute;
+      padding: 0 0.8rem;
+      top: 1rem;
+    }
+    .shortCut span {
+      padding: 0.2em;
+    }
+    .remove {
+      display: none;
+    }
+  </style>
+  <body>
+    <h1>Redirect Stopper</h1>
+    <span class="desc"
+      ><i style="font-size: 4.2vw"></i>
+        <br />Stops Potential Malcious/Annoying Redirects<br /></i
+    ></span>
+    <button class="toggleBtn">Start</button>
+    <i id="error" style="color: red; display: block"></i>
+    <div class="shortCuts">
+      <div class="shortCut remove">
+        <p>Toggle Redirect Stopper: <span>alt + shift + s</span></p>
+      </div>
+      <button id="shortCutBtn">Show Shortcuts</button>
+    </div>
+    <i
+      >If redirect needed, just toogle off then back on,<br />Or go to a tab
+      without the extension activated.</i
+    >
+    <h4 id="adChrome">
+      Do you enjoy this extension? Make sure to give it 5 stars on the
+      <a
+        href="https://chrome.google.com/webstore/detail/redirect-stopper/egmgebeelgaakhaoodlmnimbfemfgdah"
+        target="_blank"
+        >Chrome Web Store!</a
+      >
+    </h4>
+    <script src="./script.js"></script>
+  </body>
+</html>

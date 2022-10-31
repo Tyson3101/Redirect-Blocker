@@ -18,4 +18,4 @@
 
 ## How to turn it on?
 
-#### To turn it on just click the extension icon and a popup will appear, you will be able to turn the extension on.
+#### To turn it on just click the extension icon and a popup will appear, you will be able to turn the extension on, OR use the shortcut: alt + shift + s!
