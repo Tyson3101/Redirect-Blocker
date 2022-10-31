@@ -39,7 +39,6 @@ document.onclick = (e: Event) => {
 };
 
 function changeToggleButton(result: boolean) {
-  console.log(result ? "Turn Off" : "Turn On", applicationIsOn == null);
   toggleBtn.innerText = result ? "Turn Off" : "Turn On";
   toggleBtn.classList.remove(result ? "off" : "on");
   toggleBtn.classList.add(result ? "on" : "off");

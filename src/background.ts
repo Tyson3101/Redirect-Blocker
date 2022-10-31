@@ -20,7 +20,6 @@ chrome.runtime.onMessage.addListener(
 
 chrome.commands.onCommand.addListener((command) => {
   if (command === "toggle-application") {
-    console.log("Running command: ", command);
     chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
       const tab = tabs[0];
       chrome.storage.local.get(["applicationIsOn" + tab.id], (result) => {
@@ -67,13 +66,3 @@ function stopRedirectStopper(tabId: number) {
   chrome.storage.local.remove(["applicationIsOn" + tabId]).catch((e) => e);
   delete tabsData[tabId];
 }
-
-function stopAllRedirectStoppers() {
-  for (const tabId in tabsData) stopRedirectStopper(parseInt(tabId));
-}
-
-setInterval(() => {
-  chrome.storage.local.get(null, (result) => {
-    console.log(result, tabsData);
-  });
-}, 2000);
