@@ -90,7 +90,7 @@ function startRedirectStopper(tabId) {
     });
     chrome.tabs.onActivated.addListener(async function (tab) {
         if (!tabsData[tabId])
-            return chrome.tabs.onCreated.removeListener(this);
+            return chrome.tabs.onActivated.removeListener(this);
         if (tab.tabId === tabData.latestCreatedTab && tabData.active) {
             await chrome.tabs.update(tabId, { active: true }).catch((e) => e);
             await chrome.tabs.remove(tab.tabId).catch((e) => e);
