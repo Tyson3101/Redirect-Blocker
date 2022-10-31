@@ -1,5 +1,21 @@
 const toggleBtn = document.querySelector(".toggleBtn");
+const savedURLS = document.querySelector("#savedURLS");
 let applicationIsOn;
+chrome.storage.local.get("savedURLS", (result) => {
+    let value = result["savedURLS"];
+    if (value == undefined) {
+        chrome.storage.local.set({
+            savedURLS: ["https://soap2day.day/"],
+        });
+        value = ["https://soap2day.day/"];
+    }
+    savedURLS.value = value.join("\n");
+});
+savedURLS.addEventListener("input", async (e) => {
+    chrome.storage.local.set({
+        savedURLS: savedURLS.value.trim().split("\n"),
+    });
+});
 chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
     const tab = tabs[0];
     chrome.storage.onChanged.addListener((result) => {

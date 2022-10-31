@@ -33,7 +33,7 @@
     }
     .toggleBtn {
       border: 1px solid black;
-      height: 20vh;
+      height: 15vh;
       width: 50vw;
       font-size: 1.5rem;
     }
@@ -74,6 +74,17 @@
     .remove {
       display: none;
     }
+
+    textarea#savedUrls {
+      width: 70%;
+      text-align: left;
+      height: 15vh;
+      resize: none;
+      border: 1px solid black;
+      background-color: rgb(165, 195, 204);
+      padding: 0.2em;
+      margin-bottom: 0.2em;
+    }
   </style>
   <body>
     <h1>Redirect Stopper</h1>
@@ -88,6 +99,8 @@
         <p>Toggle Redirect Stopper: <span>alt + shift + s</span></p>
       </div>
       <button id="shortCutBtn">Show Shortcuts</button>
+      <h3 style="margin-bottom: 0;" for="savedUrls">Saved URLs <i style="font-size: 0.7em;">(Separate by new line)</i></h3>
+      <textarea id="savedUrls"></textarea>
     </div>
     <i
       >If redirect needed, just toogle off then back on,<br />Or go to a tab

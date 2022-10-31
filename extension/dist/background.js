@@ -1,4 +1,50 @@
 const tabsData = {};
+const savedUrlsTabData = {};
+chrome.storage.local.get("savedURLS", (value) => {
+    if (value["savedURLS"] == undefined) {
+        chrome.storage.local.set({
+            savedURLS: ["https://soap2day.day/"],
+        });
+    }
+});
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    function turnOn(tabId) {
+        chrome.storage.local.set({
+            ["applicationIsOn" + tabId]: true,
+        });
+        tabsData[tabId] = {
+            tabId,
+            active: true,
+        };
+        savedUrlsTabData[tabId] = {
+            tabId,
+            lastURL: changeInfo.url,
+        };
+        startRedirectStopper(tabId);
+    }
+    if (!changeInfo.url)
+        return;
+    chrome.storage.local.get("savedURLS", (value) => {
+        if (value["savedURLS"]?.some((url) => tab.url?.includes(url))) {
+            try {
+                if (changeInfo.url.includes(new URL(savedUrlsTabData[tabId].lastURL).origin)) {
+                    return (savedUrlsTabData[tabId] = {
+                        tabId,
+                        lastURL: changeInfo.url,
+                    });
+                }
+                turnOn(tabId);
+            }
+            catch (e) {
+                turnOn(tabId);
+            }
+        }
+    });
+});
+chrome.tabs.onRemoved.addListener((tabId) => {
+    delete savedUrlsTabData[tabId];
+    stopRedirectStopper(tabId);
+});
 chrome.runtime.onMessage.addListener((value) => {
     if (value.isOn) {
         tabsData[value.tabId] = {
