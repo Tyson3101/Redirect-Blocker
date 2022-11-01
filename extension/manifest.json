@@ -24,5 +24,5 @@
       "description": "Toggles the Redirect Stopper Extension"
     }
   },
-  "permissions": ["tabs", "storage"]
+  "permissions": ["storage"]
 }
