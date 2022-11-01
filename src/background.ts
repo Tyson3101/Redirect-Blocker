@@ -22,23 +22,30 @@ chrome.storage.local.get("savedURLS", (value) => {
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  function turnOn(tabId: number) {
+  function turnOn(tabIdtoTurnOn: number) {
     chrome.storage.local.set({
-      ["applicationIsOn" + tabId]: true,
+      ["applicationIsOn" + tabIdtoTurnOn]: true,
     });
-    tabsData[tabId] = {
-      tabId,
+    tabsData[tabIdtoTurnOn] = {
+      tabId: tabIdtoTurnOn,
       active: true,
     };
-    savedUrlsTabData[tabId] = {
-      tabId,
+    savedUrlsTabData[tabIdtoTurnOn] = {
+      tabId: tabIdtoTurnOn,
       lastURL: changeInfo.url,
     };
-    startRedirectStopper(tabId);
+    startRedirectStopper(tabIdtoTurnOn);
   }
   if (!changeInfo.url) return;
   chrome.storage.local.get("savedURLS", (value) => {
-    if (value["savedURLS"]?.some((url: string) => tab.url?.includes(url))) {
+    if (
+      value["savedURLS"]?.some((url: string) =>
+        tab.url
+          .toLowerCase()
+          .replace("www.", "")
+          ?.includes(url.toLowerCase().replace("www.", ""))
+      )
+    ) {
       try {
         if (
           changeInfo.url.includes(
@@ -116,7 +123,6 @@ function startRedirectStopper(tabId: number) {
       tabData.active = false;
     }
   });
-  chrome.tabs.onRemoved.addListener((tabId) => stopRedirectStopper(tabId));
 }
 
 function stopRedirectStopper(tabId: number) {
