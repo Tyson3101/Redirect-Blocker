@@ -111,6 +111,7 @@ function startRedirectStopper(tabId: number) {
   chrome.tabs.onCreated.addListener(async function (tab) {
     if (!tabsData[tabId]) return chrome.tabs.onCreated.removeListener(this);
     tabData.latestCreatedTab = tab.id;
+    console.log("created", tab.id);
   });
   chrome.tabs.onActivated.addListener(async function (tab) {
     if (!tabsData[tabId]) return chrome.tabs.onActivated.removeListener(this);
