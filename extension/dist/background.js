@@ -24,6 +24,8 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     }
     if (!changeInfo.url)
         return;
+    if (changeInfo.url.toLowerCase().includes("chrome://"))
+        return;
     chrome.storage.local.get("savedURLS", (value) => {
         if (value["savedURLS"]?.some((url) => tab.url
             .toLowerCase()
@@ -89,8 +91,12 @@ function startRedirectStopper(tabId) {
     chrome.tabs.onCreated.addListener(async function (tab) {
         if (!tabsData[tabId])
             return chrome.tabs.onCreated.removeListener(this);
+        const tabURL = tab.pendingUrl?.toLowerCase();
+        if (tabURL) {
+            if (tabURL.startsWith("chrome://newtab"))
+                return;
+        }
         tabData.latestCreatedTab = tab.id;
-        console.log("created", tab.id);
     });
     chrome.tabs.onActivated.addListener(async function (tab) {
         if (!tabsData[tabId])
@@ -100,9 +106,11 @@ function startRedirectStopper(tabId) {
             await chrome.tabs.remove(tab.tabId).catch((e) => e);
         }
         else if (tab.tabId === tabId) {
+            console.log("tab is active");
             tabData.active = true;
         }
         else {
+            console.log("tab is not active");
             tabData.active = false;
         }
     });
