@@ -3,6 +3,7 @@ const savedURLS = document.querySelector("#savedURLS") as HTMLTextAreaElement;
 const tabExclusiveSelect = document.querySelector(
   "#turnOffOnWhen"
 ) as HTMLSelectElement;
+const nextSettings = document.querySelector("#nextSettings") as HTMLDivElement;
 
 let applicationIsOn: boolean;
 
@@ -85,8 +86,23 @@ document.onclick = (e: Event) => {
   }
   if ((e.target as HTMLButtonElement).id === "shortCutBtn")
     document.querySelector(".shortCut").classList.toggle("remove");
-  if ((e.target as HTMLButtonElement).id === "settingsBtn")
-    document.querySelector(".settings").classList.toggle("remove");
+};
+
+nextSettings.onclick = () => {
+  const settingPage = document.querySelectorAll(
+    ".settingsPage"
+  ) as NodeListOf<HTMLDivElement>;
+  const active = [...settingPage].find((page) =>
+    page.classList.contains("active")
+  );
+  const next = (() => {
+    const nextIndex = parseInt(active.dataset["settingindex"]) + 1;
+    console.log(nextIndex);
+    if (nextIndex >= settingPage.length) return settingPage[0];
+    return settingPage[nextIndex];
+  })();
+  active.classList.remove("active");
+  next.classList.add("active");
 };
 
 function changeToggleButton(result: boolean) {

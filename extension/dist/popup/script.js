@@ -1,6 +1,7 @@
 const toggleBtn = document.querySelector(".toggleBtn");
 const savedURLS = document.querySelector("#savedURLS");
 const tabExclusiveSelect = document.querySelector("#turnOffOnWhen");
+const nextSettings = document.querySelector("#nextSettings");
 let applicationIsOn;
 chrome.storage.local.get("savedURLS", (result) => {
     let value = result["savedURLS"];
@@ -68,8 +69,19 @@ document.onclick = (e) => {
     }
     if (e.target.id === "shortCutBtn")
         document.querySelector(".shortCut").classList.toggle("remove");
-    if (e.target.id === "settingsBtn")
-        document.querySelector(".settings").classList.toggle("remove");
+};
+nextSettings.onclick = () => {
+    const settingPage = document.querySelectorAll(".settingsPage");
+    const active = [...settingPage].find((page) => page.classList.contains("active"));
+    const next = (() => {
+        const nextIndex = parseInt(active.dataset["settingindex"]) + 1;
+        console.log(nextIndex);
+        if (nextIndex >= settingPage.length)
+            return settingPage[0];
+        return settingPage[nextIndex];
+    })();
+    active.classList.remove("active");
+    next.classList.add("active");
 };
 function changeToggleButton(result) {
     toggleBtn.innerText = result ? "Turn Off" : "Turn On";
