@@ -4,7 +4,7 @@
       text-align: center;
     }
     body {
-      min-width: 300px;
+      min-width: 320px;
       padding: 1em 1em;
       padding-bottom: 0em;
       background-color: rgb(194, 221, 229);
@@ -33,15 +33,17 @@
     }
     .toggleBtn {
       border: 1px solid black;
-      height: 15vh;
-      width: 50vw;
+      height: 3.7rem;
+      width: 10rem;
       font-size: 1.5rem;
     }
     .off {
       background-color: rgb(157, 231, 157);
+      cursor: pointer;
     }
     .on {
       background-color: rgb(243, 139, 139);
+      cursor: pointer;
     }
     .off:hover {
       background-color: rgb(135, 196, 135);
@@ -58,6 +60,27 @@
       margin-top: 0.2rem;
       margin-bottom: 1.2em;
     }
+    .settings {
+      margin-top: 0.5rem;
+      padding: 0 0.5em 0.5em 0.5em;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      box-shadow: 0 0 0.1rem 0.1rem black;
+    }
+    .settings h2 {
+      text-decoration: underline;
+    }
+    .settings * {
+      margin: 0;
+    }
+    .settings label {
+      font-weight: bold;
+    }
+    .settings select {
+      margin-bottom: 0.2rem;
+    }
 
     .shortCut {
       border: 1px solid black;
@@ -65,8 +88,8 @@
       width: fit-content;
       margin-bottom: 0.2rem;
       position: absolute;
-      padding: 0 0.8rem;
       top: 1rem;
+      padding: 0 0.8rem;
     }
     .shortCut span {
       padding: 0.2em;
@@ -99,6 +122,34 @@
         <p>Toggle Redirect Stopper: <span>alt + shift + s</span></p>
       </div>
       <button id="shortCutBtn">Show Shortcuts</button>
+      <div class="settings">
+        <h2>Settings</h2>
+        <label for="turnOffOnWhen"
+          ><p style="font-size: 1rem">
+            Tab exclusive or URL exclusive
+            <i style="font-size: 0.7em; display: block"
+              >Turn off when tab deleted/turned off OR when the URL hostname
+              changes</i
+            >
+          </p></label
+        >
+        <select name="turnOffOnWhen" id="turnOffOnWhen">
+          <option value="url">Tab</option>
+          <option value="tab">URL</option>
+        </select>
+        <label for="preventURLChange"
+          ><p style="font-size: 1rem">
+            Prevent URL Change
+            <i style="font-size: 0.7em; display: block"
+              >Prevents links taking you to different site (Same Tab)</i
+            >
+          </p></label
+        >
+        <select name="preventURLChange" id="preventURLChange">
+          <option value="true">Prevent</option>
+          <option value="false">Allow</option>
+        </select>
+      </div>
       <h3 style="margin-bottom: 0" for="savedUrls">
         Saved URLs <i style="font-size: 0.7em">(Separate by new line)</i>
       </h3>

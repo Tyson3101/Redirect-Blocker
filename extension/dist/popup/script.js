@@ -1,5 +1,7 @@
 const toggleBtn = document.querySelector(".toggleBtn");
 const savedURLS = document.querySelector("#savedURLS");
+const tabExclusiveSelect = document.querySelector("#turnOffOnWhen");
+const preventURLSelect = document.querySelector("#preventURLChange");
 let applicationIsOn;
 chrome.storage.local.get("savedURLS", (result) => {
     let value = result["savedURLS"];
@@ -11,7 +13,10 @@ chrome.storage.local.get("savedURLS", (result) => {
     }
     savedURLS.value = value.join("\n");
 });
-savedURLS.addEventListener("input", async (e) => {
+savedURLS.addEventListener("input", () => {
+    const value = savedURLS.value.trim().split("\n");
+    if (value.some((url) => !url.match(/[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)?/gi)))
+        return;
     chrome.storage.local.set({
         savedURLS: savedURLS.value.trim().split("\n"),
     });
@@ -21,7 +26,7 @@ chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
     chrome.storage.onChanged.addListener((result) => {
         let value = result["applicationIsOn" + tab.id]?.newValue;
         if (value == undefined)
-            value = false;
+            return;
         changeToggleButton(value);
         applicationIsOn = value;
     });
@@ -31,6 +36,30 @@ chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
             value = false;
         changeToggleButton(result["applicationIsOn" + tab.id]);
         applicationIsOn = result["applicationIsOn" + tab.id];
+    });
+});
+chrome.storage.local.get(["tabExclusive"], async ({ tabExclusive }) => {
+    if (tabExclusive == undefined) {
+        await chrome.storage.local.set({ tabExclusive: "tab" });
+        return (tabExclusiveSelect.value = "tab");
+    }
+    tabExclusiveSelect.value = tabExclusive === "tab" ? "url" : "tab";
+});
+tabExclusiveSelect.addEventListener("change", (e) => {
+    chrome.storage.local.set({
+        tabExclusive: tabExclusiveSelect.value === "tab" ? "url" : "tab",
+    });
+});
+chrome.storage.local.get(["preventURLChange"], async ({ preventURLChange }) => {
+    if (preventURLChange == undefined) {
+        await chrome.storage.local.set({ preventURLChange: "false" });
+        return (preventURLSelect.value = "false");
+    }
+    preventURLSelect.value = preventURLChange;
+});
+preventURLSelect.addEventListener("change", (e) => {
+    chrome.storage.local.set({
+        preventURLChange: e.target.value,
     });
 });
 document.onclick = (e) => {
@@ -44,14 +73,20 @@ document.onclick = (e) => {
             chrome.runtime.sendMessage({
                 isOn: applicationIsOn,
                 tabId: tabs[0].id,
+                windowId: tabs[0].windowId,
+                tabExclusive: tabExclusiveSelect.value,
+                lastURL: tabs[0].url,
             });
         });
     }
     if (e.target.id === "shortCutBtn")
         document.querySelector(".shortCut").classList.toggle("remove");
+    if (e.target.id === "settingsBtn")
+        document.querySelector(".settings").classList.toggle("remove");
 };
 function changeToggleButton(result) {
     toggleBtn.innerText = result ? "Turn Off" : "Turn On";
     toggleBtn.classList.remove(result ? "off" : "on");
     toggleBtn.classList.add(result ? "on" : "off");
+    toggleBtn.classList.remove("loading");
 }
