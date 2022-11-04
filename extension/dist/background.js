@@ -1,4 +1,4 @@
-chrome.storage.local.get(["savedURLS", "tabExclusive", "linkChange"], (value) => {
+chrome.storage.local.get(["savedURLS", "tabExclusive"], (value) => {
     if (value["savedURLS"] == undefined) {
         chrome.storage.local.set({
             savedURLS: ["https://soap2day.day/"],
@@ -6,9 +6,6 @@ chrome.storage.local.get(["savedURLS", "tabExclusive", "linkChange"], (value) =>
     }
     if (value["tabExclusive"] == undefined) {
         chrome.storage.local.set({ tabExclusive: "tab" });
-    }
-    if (value["preventURLChange"] == undefined) {
-        chrome.storage.local.set({ preventURLChange: "true" });
     }
 });
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
@@ -35,16 +32,17 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
         return;
     if (!changeInfo.url.toLowerCase().includes("chrome://")) {
         chrome.storage.local.get(["savedURLS"], async (value) => {
-            if (value["savedURLS"]?.some((url) => tab.url
+            savedUrlsTabData(tabId, {
+                tabId,
+                lastURL: changeInfo.url,
+            });
+            if (value["savedURLS"]?.some((url) => changeInfo.url
                 .toLowerCase()
                 .replace("www.", "")
                 ?.includes(url.toLowerCase().replace("www.", "")))) {
                 try {
-                    if (changeInfo.url.includes(new URL((await savedUrlsTabData(tabId)).lastURL).origin)) {
-                        return savedUrlsTabData(tabId, {
-                            tabId,
-                            lastURL: changeInfo.url,
-                        });
+                    if (changeInfo.url.includes(new URL((await savedUrlsTabData(tabId, {}, false, false))?.lastURL).origin)) {
+                        return;
                     }
                     turnOn(tabId);
                 }
@@ -55,22 +53,12 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
         });
     }
     const tabData = await tabsData(tabId, {}, false, false);
-    console.log(tabData);
     if (!tabData)
         return;
-    chrome.storage.local.get(["tabExclusive", "preventURLChange"], async ({ tabExclusive, preventURLChange }) => {
+    chrome.storage.local.get(["tabExclusive"], async ({ tabExclusive }) => {
         if (tabExclusive !== "tab" || tabExclusive != null) {
             if (new URL(tabData.lastURL).hostname !== new URL(changeInfo.url).hostname) {
-                console.log({ preventURLChange });
-                if (preventURLChange === "true") {
-                    console.log("Preventing URL change", tabData.lastURL);
-                    return await chrome.tabs.update(tabData.tabId, {
-                        url: tabData.lastURL,
-                    });
-                }
-                else {
-                    return stopRedirectStopper(tabId);
-                }
+                return stopRedirectStopper(tabId);
             }
         }
         tabsData(tabId, { lastURL: changeInfo.url });
@@ -194,15 +182,24 @@ function tabsData(tabId, data = {}, remove = false, create = true) {
         });
     });
 }
-function savedUrlsTabData(tabId, data, remove) {
+function savedUrlsTabData(tabId, data = {}, remove = false, create = true) {
     return new Promise((resolve) => {
         chrome.storage.local.get(["savedUrlsTabData"], async (result) => {
             let value = result["savedUrlsTabData"];
-            if (value == undefined)
-                value = {};
-            if (value[tabId] == undefined)
-                value[tabId] = { tabId };
-            value[tabId] = { ...value[tabId], ...data };
+            if (create) {
+                if (value == undefined)
+                    value = {};
+                if (value[tabId] == undefined)
+                    value[tabId] = {};
+                for (let [key, v] of Object.entries(data)) {
+                    value[tabId][key] = v;
+                }
+            }
+            else {
+                if (!value?.[tabId])
+                    return resolve(undefined);
+                return resolve(value[tabId]);
+            }
             if (remove)
                 delete value[tabId];
             await chrome.storage.local.set({
@@ -212,10 +209,8 @@ function savedUrlsTabData(tabId, data, remove) {
         });
     });
 }
-// setInterval(() => {
-//   // clear all storage
-//   //chrome.storage.local.clear().then(() => console.log("cleared"));
-//   chrome.storage.local.get(null, (result) => {
-//     console.log(result);
-//   });
-// }, 6000);
+setInterval(() => {
+    // clear all storage
+    //chrome.storage.local.clear().then(() => console.log("cleared"));
+    chrome.storage.local.get(null, console.log);
+}, 6000);

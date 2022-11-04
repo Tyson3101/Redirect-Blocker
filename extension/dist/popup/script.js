@@ -1,7 +1,6 @@
 const toggleBtn = document.querySelector(".toggleBtn");
 const savedURLS = document.querySelector("#savedURLS");
 const tabExclusiveSelect = document.querySelector("#turnOffOnWhen");
-const preventURLSelect = document.querySelector("#preventURLChange");
 let applicationIsOn;
 chrome.storage.local.get("savedURLS", (result) => {
     let value = result["savedURLS"];
@@ -48,18 +47,6 @@ chrome.storage.local.get(["tabExclusive"], async ({ tabExclusive }) => {
 tabExclusiveSelect.addEventListener("change", (e) => {
     chrome.storage.local.set({
         tabExclusive: tabExclusiveSelect.value === "tab" ? "url" : "tab",
-    });
-});
-chrome.storage.local.get(["preventURLChange"], async ({ preventURLChange }) => {
-    if (preventURLChange == undefined) {
-        await chrome.storage.local.set({ preventURLChange: "false" });
-        return (preventURLSelect.value = "false");
-    }
-    preventURLSelect.value = preventURLChange;
-});
-preventURLSelect.addEventListener("change", (e) => {
-    chrome.storage.local.set({
-        preventURLChange: e.target.value,
     });
 });
 document.onclick = (e) => {

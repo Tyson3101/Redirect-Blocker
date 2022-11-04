@@ -3,9 +3,6 @@ const savedURLS = document.querySelector("#savedURLS") as HTMLTextAreaElement;
 const tabExclusiveSelect = document.querySelector(
   "#turnOffOnWhen"
 ) as HTMLSelectElement;
-const preventURLSelect = document.querySelector(
-  "#preventURLChange"
-) as HTMLSelectElement;
 
 let applicationIsOn: boolean;
 
@@ -64,20 +61,6 @@ chrome.storage.local.get(["tabExclusive"], async ({ tabExclusive }) => {
 tabExclusiveSelect.addEventListener("change", (e) => {
   chrome.storage.local.set({
     tabExclusive: tabExclusiveSelect.value === "tab" ? "url" : "tab",
-  });
-});
-
-chrome.storage.local.get(["preventURLChange"], async ({ preventURLChange }) => {
-  if (preventURLChange == undefined) {
-    await chrome.storage.local.set({ preventURLChange: "false" });
-    return (preventURLSelect.value = "false");
-  }
-  preventURLSelect.value = preventURLChange;
-});
-
-preventURLSelect.addEventListener("change", (e) => {
-  chrome.storage.local.set({
-    preventURLChange: (e.target as HTMLSelectElement).value,
   });
 });
 

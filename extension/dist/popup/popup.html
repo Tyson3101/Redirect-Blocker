@@ -124,31 +124,21 @@
       <button id="shortCutBtn">Show Shortcuts</button>
       <div class="settings">
         <h2>Settings</h2>
-        <label for="turnOffOnWhen"
-          ><p style="font-size: 1rem">
-            Tab exclusive or URL exclusive
-            <i style="font-size: 0.7em; display: block"
-              >Turn off when tab deleted/turned off OR when the URL hostname
-              changes</i
-            >
-          </p></label
-        >
-        <select name="turnOffOnWhen" id="turnOffOnWhen">
-          <option value="url">Tab</option>
-          <option value="tab">URL</option>
-        </select>
-        <label for="preventURLChange"
-          ><p style="font-size: 1rem">
-            Prevent URL Change
-            <i style="font-size: 0.7em; display: block"
-              >Prevents links taking you to different site (Same Tab)</i
-            >
-          </p></label
-        >
-        <select name="preventURLChange" id="preventURLChange">
-          <option value="true">Prevent</option>
-          <option value="false">Allow</option>
-        </select>
+        <div data-settingIndex="0">
+          <label for="turnOffOnWhen"
+            ><p style="font-size: 1rem">
+              Tab exclusive or URL exclusive
+              <i style="font-size: 0.7em; display: block"
+                >Turn off when tab deleted/turned off OR when the URL hostname
+                changes</i
+              >
+            </p></label
+          >
+          <select name="turnOffOnWhen" id="turnOffOnWhen">
+            <option value="url">Tab</option>
+            <option value="tab">URL</option>
+          </select>
+        </div>
       </div>
       <h3 style="margin-bottom: 0" for="savedUrls">
         Saved URLs <i style="font-size: 0.7em">(Separate by new line)</i>
