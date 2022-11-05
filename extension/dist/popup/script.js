@@ -1,8 +1,12 @@
 const toggleBtn = document.querySelector(".toggleBtn");
 const savedURLS = document.querySelector("#savedURLS");
+const allowedURLS = document.querySelector("#allowedURLS");
 const tabExclusiveSelect = document.querySelector("#turnOffOnWhen");
+const preventURLSelect = document.querySelector("#preventURLChange");
+const shortCutInput = document.querySelector("#shortCutInput");
 const nextSettings = document.querySelector("#nextSettings");
-let applicationIsOn;
+const backSettings = document.querySelector("#backSettings");
+const pageNumber = document.querySelector("#pageNumber");
 chrome.storage.local.get("savedURLS", (result) => {
     let value = result["savedURLS"];
     if (value == undefined) {
@@ -14,11 +18,30 @@ chrome.storage.local.get("savedURLS", (result) => {
     savedURLS.value = value.join("\n");
 });
 savedURLS.addEventListener("input", () => {
-    const value = savedURLS.value.trim().split("\n");
+    const value = savedURLS.value.toLowerCase().trim().split("\n");
     if (value.some((url) => !url.match(/[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)?/gi)))
         return;
     chrome.storage.local.set({
-        savedURLS: savedURLS.value.trim().split("\n"),
+        savedURLS: savedURLS.value.toLowerCase().trim().split("\n"),
+    });
+});
+chrome.storage.local.get("allowedURLS", (result) => {
+    let value = result["allowedURLS"];
+    if (value == undefined) {
+        chrome.storage.local.set({
+            allowedURLS: ["https://youtube.com/@Tyson3101"],
+        });
+        value = ["https://youtube.com/@Tyson3101"];
+    }
+    allowedURLS.value = value.join("\n");
+});
+allowedURLS.addEventListener("input", () => {
+    const value = allowedURLS.value.toLowerCase().trim().split("\n");
+    if (value.some((url) => !url.match(/[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)?/gi)))
+        return;
+    console.log(value);
+    chrome.storage.local.set({
+        allowedURLS: value,
     });
 });
 chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
@@ -50,6 +73,34 @@ tabExclusiveSelect.addEventListener("change", (e) => {
         tabExclusive: tabExclusiveSelect.value === "tab" ? "url" : "tab",
     });
 });
+chrome.storage.local.get(["preventURLChange"], async ({ preventURLChange }) => {
+    if (preventURLChange == undefined) {
+        await chrome.storage.local.set({ preventURLChange: "false" });
+        return (preventURLSelect.value = "false");
+    }
+    preventURLSelect.value = preventURLChange;
+});
+preventURLSelect.addEventListener("change", (e) => {
+    chrome.storage.local.set({
+        preventURLChange: e.target.value,
+    });
+});
+chrome.storage.local.get(["shortCutKeys"], async ({ shortCutKeys }) => {
+    if (shortCutKeys == undefined) {
+        await chrome.storage.local.set({ shortCutKeys: ["alt", "shift", "s"] });
+        return (shortCutInput.value = "alt+shift+s");
+    }
+    shortCutInput.value = shortCutKeys.join("+");
+    shortCutInput.addEventListener("change", (e) => {
+        const value = e.target.value.trim().split("+");
+        if (!value.length)
+            return;
+        chrome.storage.local.set({
+            shortCutKeys: value,
+        });
+        shortCutInput.value = value.join("+");
+    });
+});
 document.onclick = (e) => {
     if (e.target.classList.contains("toggleBtn") &&
         applicationIsOn !== null) {
@@ -75,13 +126,30 @@ nextSettings.onclick = () => {
     const active = [...settingPage].find((page) => page.classList.contains("active"));
     const next = (() => {
         const nextIndex = parseInt(active.dataset["settingindex"]) + 1;
-        console.log(nextIndex);
         if (nextIndex >= settingPage.length)
             return settingPage[0];
         return settingPage[nextIndex];
     })();
+    pageNumber.innerText = `${parseInt(next.dataset["settingindex"]) + 1}/5`;
     active.classList.remove("active");
     next.classList.add("active");
+};
+backSettings.onclick = () => {
+    const settingPage = document.querySelectorAll(".settingsPage");
+    const active = [...settingPage].find((page) => page.classList.contains("active"));
+    const last = (() => {
+        const lastIndex = parseInt(active.dataset["settingindex"]) - 1;
+        if (lastIndex < 0) {
+            pageNumber.innerText = `5/5`;
+            return settingPage[4];
+        }
+        else {
+            pageNumber.innerText = `${parseInt(active.dataset["settingindex"])}/5`;
+            return settingPage[lastIndex];
+        }
+    })();
+    active.classList.remove("active");
+    last.classList.add("active");
 };
 function changeToggleButton(result) {
     toggleBtn.innerText = result ? "Turn Off" : "Turn On";

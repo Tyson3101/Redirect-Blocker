@@ -1,13 +1,38 @@
-chrome.storage.local.get(["savedURLS", "tabExclusive"], (value) => {
-  if (value["savedURLS"] == undefined) {
-    chrome.storage.local.set({
-      savedURLS: ["https://soap2day.day/"],
-    });
+const builtInSavedUrls = [
+  "https://chrome.google.com/webstore/detail/redirect-stopper/egmgebeelgaakhaoodlmnimbfemfgdah",
+  "https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_key_values",
+];
+
+chrome.storage.local.get(
+  [
+    "savedURLS",
+    "tabExclusive",
+    "preventURLChange",
+    "shortCutKeys",
+    "allowedURLS",
+  ],
+  (value) => {
+    if (value["savedURLS"] == undefined) {
+      chrome.storage.local.set({
+        savedURLS: ["https://soap2day.day/"],
+      });
+    }
+    if (value["tabExclusive"] == undefined) {
+      chrome.storage.local.set({ tabExclusive: "tab" });
+    }
+    if (value["preventURLChange"] == undefined) {
+      chrome.storage.local.set({ preventURLChange: "false" });
+    }
+    if (value["shortCutKeys"] == undefined) {
+      chrome.storage.local.set({ shortCutKeys: ["alt", "shift", "s"] });
+    }
+    if (value["allowedURLS"] == undefined) {
+      chrome.storage.local.set({
+        allowedURLS: ["https://youtube.com/@Tyson3101"],
+      });
+    }
   }
-  if (value["tabExclusive"] == undefined) {
-    chrome.storage.local.set({ tabExclusive: "tab" });
-  }
-});
+);
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   function turnOn(tabIdtoTurnOn: number) {
@@ -18,7 +43,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       await tabsData(tabIdtoTurnOn, {
         tabId: tabIdtoTurnOn,
         active: true,
-        windowId: tabs[0].windowId,
+        windowId: tabs[0]?.windowId,
         windowActive: true,
         lastURL: changeInfo.url,
       });
@@ -64,7 +89,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   const tabData = await tabsData(tabId, {}, false, false);
   if (!tabData) return;
   chrome.storage.local.get(["tabExclusive"], async ({ tabExclusive }) => {
-    if (tabExclusive !== "tab" || tabExclusive != null) {
+    if (tabExclusive !== "tab") {
       if (
         new URL(tabData.lastURL).hostname !== new URL(changeInfo.url).hostname
       ) {
@@ -81,13 +106,61 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 });
 
 chrome.runtime.onMessage.addListener(
-  async (value: {
-    tabId: number;
-    isOn: boolean;
-    windowId: number;
-    lastURL: string;
-  }) => {
-    if (value.isOn) {
+  async (
+    value: {
+      tabId: number;
+      isOn: boolean;
+      windowId: number;
+      lastURL: string;
+      shortCut?: boolean;
+      getTabID?: boolean;
+      keepAlive?: boolean;
+    },
+    _,
+    sendResponse
+  ) => {
+    if (value.keepAlive) {
+      return sendResponse(true);
+    } else if (value.getTabID) {
+      chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+        if (!tabs[0]) return;
+        await chrome.tabs
+          .sendMessage(tabs[0].id, { id: tabs[0].id })
+          .catch((e) => e);
+        chrome.storage.local.get(["applicationIsOn" + tabs[0].id], (result) => {
+          let isOn = false;
+          let value = result["applicationIsOn" + tabs[0].id];
+          if (value) isOn = true;
+          chrome.tabs.sendMessage(tabs[0].id, { isOn }).catch((e) => e);
+        });
+      });
+      return sendResponse(true);
+    } else if (value.shortCut === true) {
+      chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+        const tab = tabs[0];
+        chrome.storage.local.get(
+          ["applicationIsOn" + tab.id],
+          async (result) => {
+            let value = result["applicationIsOn" + tab.id];
+            if (!value) {
+              chrome.storage.local.set({
+                ["applicationIsOn" + tabs[0].id]: true,
+              });
+              await tabsData(tab.id, {
+                tabId: tab.id,
+                active: true,
+                windowActive: true,
+                windowId: tab.windowId,
+                lastURL: tab.url,
+              });
+              startRedirectStopper(tab.id);
+            } else {
+              stopRedirectStopper(tab.id);
+            }
+          }
+        );
+      });
+    } else if (value.isOn) {
       await tabsData(value.tabId, {
         tabId: value.tabId,
         active: true,
@@ -97,40 +170,26 @@ chrome.runtime.onMessage.addListener(
       });
       startRedirectStopper(value.tabId);
     } else stopRedirectStopper(value.tabId);
+    return sendResponse(true);
   }
 );
 
-chrome.commands.onCommand.addListener((command) => {
-  if (command === "toggle-application") {
-    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
-      const tab = tabs[0];
-      chrome.storage.local.get(["applicationIsOn" + tab.id], async (result) => {
-        let value = result["applicationIsOn" + tab.id];
-        if (!value) {
-          chrome.storage.local.set({
-            ["applicationIsOn" + tabs[0].id]: true,
-          });
-          await tabsData(tab.id, {
-            tabId: tab.id,
-            active: true,
-            windowActive: true,
-            windowId: tab.windowId,
-            lastURL: tab.url,
-          });
-          startRedirectStopper(tab.id);
-        } else {
-          stopRedirectStopper(tab.id);
-        }
-      });
-    });
-  }
-});
-
 async function startRedirectStopper(tabId: number) {
   const tabData = await tabsData(tabId);
+  chrome.tabs.sendMessage(tabId, { isOn: true }).catch((e) => e);
+  let checkUrls = [];
+  chrome.storage.local.get(["allowedURLS"], ({ allowedURLS }) => {
+    checkUrls = [...builtInSavedUrls, ...allowedURLS];
+  });
+  chrome.storage.onChanged.addListener(({ allowedURLS }) => {
+    if (allowedURLS?.newValue?.length) {
+      console.log(allowedURLS, " CHANGED!");
+      checkUrls = [...builtInSavedUrls, ...allowedURLS.newValue];
+    } else console.log("No change");
+  });
   chrome.tabs.onCreated.addListener(async function (tab) {
     if (!(await tabsData(tabId, {}, false, false))) return;
-    const tabURL = tab.pendingUrl?.toLowerCase();
+    const tabURL = tab.pendingUrl?.toLowerCase()?.replace("www.", "");
     if (tabURL) {
       if (tabURL.startsWith("chrome://newtab")) return;
     }
@@ -145,28 +204,48 @@ async function startRedirectStopper(tabId: number) {
       tab.tabId === tabData.latestCreatedTab &&
       (tabData.active || tabData.windowActive)
     ) {
-      await chrome.tabs.update(tabId, { active: true }).catch((e) => e);
-      await chrome.tabs.remove(tab.tabId).catch((e) => e);
-    } else if (tab.tabId === tabId) {
-      console.log(`Tab-${tabData.tabId} is active`);
-      tabData.active = true;
-    } else {
-      console.log(`Tab-${tabData.tabId} is not active`);
-      tabData.active = false;
-    }
-    chrome.storage.local.get(["tabsData"], (result) => {
-      let value = result["tabsData"];
-      if (value?.[tabId]?.tabId == undefined) return;
-      chrome.tabs.query({ active: true }, (tabs) => {
-        tabData.windowActive = tabs.some((tab) => tab.id === tabId);
-        tabsData(tabId, tabData);
+      chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+        console.log(tabs[0]?.url, checkUrls);
+        if (tabs[0]?.id !== tab.tabId) return checkIfActive();
+        const tabURL = tabs[0]?.url
+          ? tabs[0].url?.toLowerCase()?.replace("www.", "")
+          : tabs[0]?.pendingUrl?.toLowerCase()?.replace("www.", "");
+        if (tabURL) {
+          if (tabURL.startsWith("chrome://newtab")) return checkIfActive();
+          if (
+            checkUrls.some((url: string) =>
+              url.toLowerCase().replace("www.", "").startsWith(tabURL)
+            )
+          )
+            return checkIfActive();
+        }
+        await chrome.tabs.update(tabId, { active: true }).catch((e) => e);
+        await chrome.tabs.remove(tab.tabId).catch((e) => e);
       });
-    });
+    } else checkIfActive();
+    function checkIfActive() {
+      if (tab.tabId === tabId) {
+        console.log(`Tab-${tabData.tabId} is active`);
+        tabData.active = true;
+      } else {
+        console.log(`Tab-${tabData.tabId} is not active`);
+        tabData.active = false;
+      }
+      chrome.storage.local.get(["tabsData"], (result) => {
+        let value = result["tabsData"];
+        if (value?.[tabId]?.tabId == undefined) return;
+        chrome.tabs.query({ active: true }, (tabs) => {
+          tabData.windowActive = tabs.some((tab) => tab.id === tabId);
+          tabsData(tabId, tabData);
+        });
+      });
+    }
   });
 }
 
 function stopRedirectStopper(tabId: number) {
   chrome.storage.local.remove(["applicationIsOn" + tabId]).catch((e) => e);
+  chrome.tabs.sendMessage(tabId, { isOn: false }).catch((e) => e);
   tabsData(tabId, {}, true);
 }
 
@@ -191,7 +270,7 @@ function tabsData(
   lastURL?: string;
 }> {
   return new Promise((resolve) => {
-    chrome.storage.local.get(["tabsData"], async (result) => {
+    chrome.storage.local.get(["tabsData"], (result) => {
       let value = { ...result["tabsData"] };
       if (create) {
         if (value == undefined) value = {};
@@ -204,10 +283,11 @@ function tabsData(
         return resolve(value[tabId]);
       }
       if (remove) delete value[tabId];
-      await chrome.storage.local.set({
-        tabsData: value,
-      });
-      resolve(value[tabId]);
+      chrome.storage.local
+        .set({
+          tabsData: value,
+        })
+        .then(() => resolve(value[tabId]));
     });
   });
 }
@@ -240,8 +320,24 @@ function savedUrlsTabData(
   });
 }
 
-setInterval(() => {
-  // clear all storage
-  //chrome.storage.local.clear().then(() => console.log("cleared"));
-  chrome.storage.local.get(null, console.log);
-}, 6000);
+// Keep alive (@wOxxOm stackoverflow https://stackoverflow.com/questions/66618136/persistent-service-worker-in-chrome-extension)
+chrome.runtime.onConnect.addListener((port: any) => {
+  if (port.name !== "keepAlive") return;
+  console.log("on connect .");
+  port.onMessage.addListener(onMessage);
+  port.onDisconnect.addListener(deleteTimer);
+  port._timer = setTimeout(forceReconnect, 250e3, port);
+});
+function onMessage(msg: any, port: any) {
+  console.log("received", msg, "from", port.sender);
+}
+function forceReconnect(port: any) {
+  deleteTimer(port);
+  port.disconnect();
+}
+function deleteTimer(port: any) {
+  if (port._timer) {
+    clearTimeout(port._timer);
+    delete port._timer;
+  }
+}

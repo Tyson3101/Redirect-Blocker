@@ -1,4 +1,14 @@
-chrome.storage.local.get(["savedURLS", "tabExclusive"], (value) => {
+const builtInSavedUrls = [
+    "https://chrome.google.com/webstore/detail/redirect-stopper/egmgebeelgaakhaoodlmnimbfemfgdah",
+    "https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_key_values",
+];
+chrome.storage.local.get([
+    "savedURLS",
+    "tabExclusive",
+    "preventURLChange",
+    "shortCutKeys",
+    "allowedURLS",
+], (value) => {
     if (value["savedURLS"] == undefined) {
         chrome.storage.local.set({
             savedURLS: ["https://soap2day.day/"],
@@ -6,6 +16,17 @@ chrome.storage.local.get(["savedURLS", "tabExclusive"], (value) => {
     }
     if (value["tabExclusive"] == undefined) {
         chrome.storage.local.set({ tabExclusive: "tab" });
+    }
+    if (value["preventURLChange"] == undefined) {
+        chrome.storage.local.set({ preventURLChange: "false" });
+    }
+    if (value["shortCutKeys"] == undefined) {
+        chrome.storage.local.set({ shortCutKeys: ["alt", "shift", "s"] });
+    }
+    if (value["allowedURLS"] == undefined) {
+        chrome.storage.local.set({
+            allowedURLS: ["https://youtube.com/@Tyson3101"],
+        });
     }
 });
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
@@ -17,7 +38,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
             await tabsData(tabIdtoTurnOn, {
                 tabId: tabIdtoTurnOn,
                 active: true,
-                windowId: tabs[0].windowId,
+                windowId: tabs[0]?.windowId,
                 windowActive: true,
                 lastURL: changeInfo.url,
             });
@@ -56,7 +77,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     if (!tabData)
         return;
     chrome.storage.local.get(["tabExclusive"], async ({ tabExclusive }) => {
-        if (tabExclusive !== "tab" || tabExclusive != null) {
+        if (tabExclusive !== "tab") {
             if (new URL(tabData.lastURL).hostname !== new URL(changeInfo.url).hostname) {
                 return stopRedirectStopper(tabId);
             }
@@ -68,22 +89,28 @@ chrome.tabs.onRemoved.addListener((tabId) => {
     savedUrlsTabData(tabId, {}, true);
     stopRedirectStopper(tabId);
 });
-chrome.runtime.onMessage.addListener(async (value) => {
-    if (value.isOn) {
-        await tabsData(value.tabId, {
-            tabId: value.tabId,
-            active: true,
-            windowActive: true,
-            windowId: value.windowId,
-            lastURL: value.lastURL,
-        });
-        startRedirectStopper(value.tabId);
+chrome.runtime.onMessage.addListener(async (value, _, sendResponse) => {
+    if (value.keepAlive) {
+        return sendResponse(true);
     }
-    else
-        stopRedirectStopper(value.tabId);
-});
-chrome.commands.onCommand.addListener((command) => {
-    if (command === "toggle-application") {
+    else if (value.getTabID) {
+        chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+            if (!tabs[0])
+                return;
+            await chrome.tabs
+                .sendMessage(tabs[0].id, { id: tabs[0].id })
+                .catch((e) => e);
+            chrome.storage.local.get(["applicationIsOn" + tabs[0].id], (result) => {
+                let isOn = false;
+                let value = result["applicationIsOn" + tabs[0].id];
+                if (value)
+                    isOn = true;
+                chrome.tabs.sendMessage(tabs[0].id, { isOn }).catch((e) => e);
+            });
+        });
+        return sendResponse(true);
+    }
+    else if (value.shortCut === true) {
         chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
             const tab = tabs[0];
             chrome.storage.local.get(["applicationIsOn" + tab.id], async (result) => {
@@ -107,13 +134,39 @@ chrome.commands.onCommand.addListener((command) => {
             });
         });
     }
+    else if (value.isOn) {
+        await tabsData(value.tabId, {
+            tabId: value.tabId,
+            active: true,
+            windowActive: true,
+            windowId: value.windowId,
+            lastURL: value.lastURL,
+        });
+        startRedirectStopper(value.tabId);
+    }
+    else
+        stopRedirectStopper(value.tabId);
+    return sendResponse(true);
 });
 async function startRedirectStopper(tabId) {
     const tabData = await tabsData(tabId);
+    chrome.tabs.sendMessage(tabId, { isOn: true }).catch((e) => e);
+    let checkUrls = [];
+    chrome.storage.local.get(["allowedURLS"], ({ allowedURLS }) => {
+        checkUrls = [...builtInSavedUrls, ...allowedURLS];
+    });
+    chrome.storage.onChanged.addListener(({ allowedURLS }) => {
+        if (allowedURLS?.newValue?.length) {
+            console.log(allowedURLS, " CHANGED!");
+            checkUrls = [...builtInSavedUrls, ...allowedURLS.newValue];
+        }
+        else
+            console.log("No change");
+    });
     chrome.tabs.onCreated.addListener(async function (tab) {
         if (!(await tabsData(tabId, {}, false, false)))
             return;
-        const tabURL = tab.pendingUrl?.toLowerCase();
+        const tabURL = tab.pendingUrl?.toLowerCase()?.replace("www.", "");
         if (tabURL) {
             if (tabURL.startsWith("chrome://newtab"))
                 return;
@@ -129,35 +182,54 @@ async function startRedirectStopper(tabId) {
             return;
         if (tab.tabId === tabData.latestCreatedTab &&
             (tabData.active || tabData.windowActive)) {
-            await chrome.tabs.update(tabId, { active: true }).catch((e) => e);
-            await chrome.tabs.remove(tab.tabId).catch((e) => e);
-        }
-        else if (tab.tabId === tabId) {
-            console.log(`Tab-${tabData.tabId} is active`);
-            tabData.active = true;
-        }
-        else {
-            console.log(`Tab-${tabData.tabId} is not active`);
-            tabData.active = false;
-        }
-        chrome.storage.local.get(["tabsData"], (result) => {
-            let value = result["tabsData"];
-            if (value?.[tabId]?.tabId == undefined)
-                return;
-            chrome.tabs.query({ active: true }, (tabs) => {
-                tabData.windowActive = tabs.some((tab) => tab.id === tabId);
-                tabsData(tabId, tabData);
+            chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+                console.log(tabs[0]?.url, checkUrls);
+                if (tabs[0]?.id !== tab.tabId)
+                    return checkIfActive();
+                const tabURL = tabs[0]?.url
+                    ? tabs[0].url?.toLowerCase()?.replace("www.", "")
+                    : tabs[0]?.pendingUrl?.toLowerCase()?.replace("www.", "");
+                if (tabURL) {
+                    if (tabURL.startsWith("chrome://newtab"))
+                        return checkIfActive();
+                    if (checkUrls.some((url) => url.toLowerCase().replace("www.", "").startsWith(tabURL)))
+                        return checkIfActive();
+                }
+                await chrome.tabs.update(tabId, { active: true }).catch((e) => e);
+                await chrome.tabs.remove(tab.tabId).catch((e) => e);
             });
-        });
+        }
+        else
+            checkIfActive();
+        function checkIfActive() {
+            if (tab.tabId === tabId) {
+                console.log(`Tab-${tabData.tabId} is active`);
+                tabData.active = true;
+            }
+            else {
+                console.log(`Tab-${tabData.tabId} is not active`);
+                tabData.active = false;
+            }
+            chrome.storage.local.get(["tabsData"], (result) => {
+                let value = result["tabsData"];
+                if (value?.[tabId]?.tabId == undefined)
+                    return;
+                chrome.tabs.query({ active: true }, (tabs) => {
+                    tabData.windowActive = tabs.some((tab) => tab.id === tabId);
+                    tabsData(tabId, tabData);
+                });
+            });
+        }
     });
 }
 function stopRedirectStopper(tabId) {
     chrome.storage.local.remove(["applicationIsOn" + tabId]).catch((e) => e);
+    chrome.tabs.sendMessage(tabId, { isOn: false }).catch((e) => e);
     tabsData(tabId, {}, true);
 }
 function tabsData(tabId, data = {}, remove = false, create = true) {
     return new Promise((resolve) => {
-        chrome.storage.local.get(["tabsData"], async (result) => {
+        chrome.storage.local.get(["tabsData"], (result) => {
             let value = { ...result["tabsData"] };
             if (create) {
                 if (value == undefined)
@@ -175,10 +247,11 @@ function tabsData(tabId, data = {}, remove = false, create = true) {
             }
             if (remove)
                 delete value[tabId];
-            await chrome.storage.local.set({
+            chrome.storage.local
+                .set({
                 tabsData: value,
-            });
-            resolve(value[tabId]);
+            })
+                .then(() => resolve(value[tabId]));
         });
     });
 }
@@ -209,8 +282,24 @@ function savedUrlsTabData(tabId, data = {}, remove = false, create = true) {
         });
     });
 }
-setInterval(() => {
-    // clear all storage
-    //chrome.storage.local.clear().then(() => console.log("cleared"));
-    chrome.storage.local.get(null, console.log);
-}, 6000);
+chrome.runtime.onConnect.addListener((port) => {
+    if (port.name !== "keepAlive")
+        return;
+    console.log("on connect .");
+    port.onMessage.addListener(onMessage);
+    port.onDisconnect.addListener(deleteTimer);
+    port._timer = setTimeout(forceReconnect, 250e3, port);
+});
+function onMessage(msg, port) {
+    console.log("received", msg, "from", port.sender);
+}
+function forceReconnect(port) {
+    deleteTimer(port);
+    port.disconnect();
+}
+function deleteTimer(port) {
+    if (port._timer) {
+        clearTimeout(port._timer);
+        delete port._timer;
+    }
+}
