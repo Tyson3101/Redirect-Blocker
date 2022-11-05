@@ -16,13 +16,11 @@
     "default_popup": "/dist/popup/popup.html",
     "default_title": "Redirect Stopper"
   },
-  "commands": {
-    "toggle-application": {
-      "suggested_key": {
-        "default": "Alt+Shift+S"
-      },
-      "description": "Toggles the Redirect Stopper Extension"
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["./dist/content.js"]
     }
-  },
+  ],
   "permissions": ["tabs", "storage"]
 }
