@@ -149,6 +149,9 @@ chrome.runtime.onMessage.addListener(async (value, _, sendResponse) => {
     return sendResponse(true);
 });
 async function startRedirectStopper(tabId) {
+    chrome.storage.local.set({
+        ["applicationIsOn" + tabId]: true,
+    });
     const tabData = await tabsData(tabId);
     chrome.tabs.sendMessage(tabId, { isOn: true }).catch((e) => e);
     let checkUrls = [];
@@ -157,11 +160,8 @@ async function startRedirectStopper(tabId) {
     });
     chrome.storage.onChanged.addListener(({ allowedURLS }) => {
         if (allowedURLS?.newValue?.length) {
-            console.log(allowedURLS, " CHANGED!");
             checkUrls = [...builtInSavedUrls, ...allowedURLS.newValue];
         }
-        else
-            console.log("No change");
     });
     chrome.tabs.onCreated.addListener(async function (tab) {
         if (!(await tabsData(tabId, {}, false, false)))
@@ -183,7 +183,6 @@ async function startRedirectStopper(tabId) {
         if (tab.tabId === tabData.latestCreatedTab &&
             (tabData.active || tabData.windowActive)) {
             chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
-                console.log(tabs[0]?.url, checkUrls);
                 if (tabs[0]?.id !== tab.tabId)
                     return checkIfActive();
                 const tabURL = tabs[0]?.url
@@ -273,8 +272,9 @@ function savedUrlsTabData(tabId, data = {}, remove = false, create = true) {
                     return resolve(undefined);
                 return resolve(value[tabId]);
             }
-            if (remove)
+            if (remove) {
                 delete value[tabId];
+            }
             await chrome.storage.local.set({
                 savedUrlsTabData: value,
             });
@@ -285,7 +285,6 @@ function savedUrlsTabData(tabId, data = {}, remove = false, create = true) {
 chrome.runtime.onConnect.addListener((port) => {
     if (port.name !== "keepAlive")
         return;
-    console.log("on connect .");
     port.onMessage.addListener(onMessage);
     port.onDisconnect.addListener(deleteTimer);
     port._timer = setTimeout(forceReconnect, 250e3, port);

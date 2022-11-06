@@ -6,7 +6,6 @@ const allowedToRedirectURLS = [];
 let port;
 function connect() {
     port = chrome.runtime.connect({ name: "keepAlive" });
-    console.log("connected");
     port.onDisconnect.addListener(connect);
     port.onMessage.addListener((msg) => {
         console.log("received", msg, "from bg");
@@ -33,7 +32,6 @@ function addLinks() {
 }
 function removeLinks() {
     const links = document.querySelectorAll("a");
-    console.log({ linksLength: links.length });
     removedLinks = [];
     chrome.storage.local.get(["allowedURLS"], ({ allowedURLS }) => {
         if (allowedURLS == undefined)
@@ -56,8 +54,7 @@ function removeLinks() {
 function setUpRemoveLinksToDifferentSite() {
     chrome.storage.local.get(["preventURLChange"], (result) => {
         if (!applicationIsOn)
-            return console.log("Application is off");
-        console.log({ result });
+            return;
         if (result["preventURLChange"] == "true") {
             removeLinks();
         }
@@ -70,7 +67,6 @@ function setUpRemoveLinksToDifferentSite() {
 function getTabID() {
     chrome.runtime.sendMessage({ getTabID: true }, () => {
         chrome.runtime.onMessage.addListener(function ({ id, ...request }) {
-            console.log(id, request);
             if (tabId !== undefined) {
                 if (request.isOn === true) {
                     applicationIsOn = true;
@@ -97,7 +93,6 @@ getShortCutKeys();
 getTabID();
 function shortCutListener() {
     let pressedKeys = [];
-    console.log("Function called.", shortCutKeys);
     function debounce(cb, delay = 200) {
         let timeout;
         return (...args) => {
@@ -108,7 +103,6 @@ function shortCutListener() {
         };
     }
     const checkKeys = debounce(() => {
-        console.log("Running checkKeys");
         if (pressedKeys.length == shortCutKeys.length) {
             let match = true;
             for (let i = 0; i < pressedKeys.length; i++) {
@@ -124,7 +118,8 @@ function shortCutListener() {
         pressedKeys = [];
     });
     document.addEventListener("keydown", (e) => {
-        console.log("Keydown");
+        if (!e.key)
+            return;
         pressedKeys.push(e.key.toLowerCase());
         checkKeys();
     });
