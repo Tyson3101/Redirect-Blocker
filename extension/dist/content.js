@@ -3,6 +3,7 @@ let tabId;
 let shortCutKeys = [];
 let removedLinks = [];
 const allowedToRedirectURLS = [];
+console.log("REDIRECT STOPPER ACTIVATED");
 let port;
 function connect() {
     port = chrome.runtime.connect({ name: "keepAlive" });
@@ -37,9 +38,12 @@ function removeLinks() {
         if (allowedURLS == undefined)
             return;
         links.forEach((link) => {
+            if (!link?.href)
+                return;
             if (link.href.includes(location.hostname))
                 return;
-            if (link.target == "_blank")
+            if (link.target == "_blank" ||
+                link.href.toLowerCase().includes("javascript:"))
                 return;
             if (allowedURLS.some((url) => url
                 .toLowerCase()
