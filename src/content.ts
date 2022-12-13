@@ -4,6 +4,8 @@ let shortCutKeys = [];
 let removedLinks: { element: HTMLAnchorElement; href: string }[] = [];
 const allowedToRedirectURLS = [];
 
+console.log("REDIRECT STOPPER ACTIVATED");
+
 // Keep alive (@wOxxOm stackoverflow https://stackoverflow.com/questions/66618136/persistent-service-worker-in-chrome-extension)
 let port: any;
 function connect() {
@@ -39,8 +41,13 @@ function removeLinks() {
   chrome.storage.local.get(["allowedURLS"], ({ allowedURLS }) => {
     if (allowedURLS == undefined) return;
     links.forEach((link) => {
+      if (!link?.href) return;
       if (link.href.includes(location.hostname)) return;
-      if (link.target == "_blank") return;
+      if (
+        link.target == "_blank" ||
+        link.href.toLowerCase().includes("javascript:")
+      )
+        return;
       if (
         allowedURLS.some((url: string) =>
           url

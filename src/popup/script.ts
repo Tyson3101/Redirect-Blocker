@@ -12,9 +12,30 @@ const preventURLSelect = document.querySelector(
 const shortCutInput = document.querySelector(
   "#shortCutInput"
 ) as HTMLInputElement;
+const shortCutDisplay = document.querySelector(
+  "#shortCutDisplay"
+) as HTMLSpanElement;
 const nextSettings = document.querySelector("#nextSettings") as HTMLDivElement;
 const backSettings = document.querySelector("#backSettings") as HTMLDivElement;
 const pageNumber = document.querySelector("#pageNumber") as HTMLDivElement;
+
+chrome.storage.local.get(["shortCutKeys"], async ({ shortCutKeys }) => {
+  if (shortCutKeys == undefined) {
+    await chrome.storage.local.set({ shortCutKeys: ["alt", "shift", "s"] });
+    return (shortCutInput.value = "alt+shift+s");
+  }
+  shortCutInput.value = shortCutKeys.join("+");
+  shortCutDisplay.innerText = shortCutKeys.join(" + ");
+  shortCutInput.addEventListener("change", (e) => {
+    const value = (e.target as HTMLSelectElement).value.trim().split("+");
+    if (!value.length) return;
+    chrome.storage.local.set({
+      shortCutKeys: value,
+    });
+    shortCutInput.value = value.join("+");
+    shortCutDisplay.innerText = value.join(" + ");
+  });
+});
 
 chrome.storage.local.get("savedURLS", (result) => {
   let value = result["savedURLS"];
@@ -90,8 +111,8 @@ chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
 
 chrome.storage.local.get(["tabExclusive"], async ({ tabExclusive }) => {
   if (tabExclusive == undefined) {
-    await chrome.storage.local.set({ tabExclusive: "tab" });
-    return (tabExclusiveSelect.value = "tab");
+    await chrome.storage.local.set({ tabExclusive: "url" });
+    return (tabExclusiveSelect.value = "url");
   }
   tabExclusiveSelect.value = tabExclusive === "tab" ? "url" : "tab";
 });

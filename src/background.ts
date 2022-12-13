@@ -18,7 +18,7 @@ chrome.storage.local.get(
       });
     }
     if (value["tabExclusive"] == undefined) {
-      chrome.storage.local.set({ tabExclusive: "tab" });
+      chrome.storage.local.set({ tabExclusive: "url" });
     }
     if (value["preventURLChange"] == undefined) {
       chrome.storage.local.set({ preventURLChange: "false" });
@@ -87,7 +87,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     });
   }
   const tabData = await tabsData(tabId, {}, false, false);
-  if (!tabData) return;
+  if (!tabData?.lastURL) return;
   chrome.storage.local.get(["tabExclusive"], async ({ tabExclusive }) => {
     if (tabExclusive !== "tab") {
       if (
@@ -241,6 +241,15 @@ async function startRedirectStopper(tabId: number) {
         });
       });
     }
+
+    chrome.tabs.query({}, (tabs) => {
+      const tabDataTab = tabs.find((tab) => tab.id === tabData.tabId);
+      if (!tabDataTab) return;
+      if (tabDataTab.windowId !== tabData.windowId) {
+        tabData.windowId = tabDataTab.windowId;
+        tabsData(tabId, tabData);
+      }
+    });
   });
 }
 
