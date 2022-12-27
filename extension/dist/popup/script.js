@@ -4,9 +4,28 @@ const allowedURLS = document.querySelector("#allowedURLS");
 const tabExclusiveSelect = document.querySelector("#turnOffOnWhen");
 const preventURLSelect = document.querySelector("#preventURLChange");
 const shortCutInput = document.querySelector("#shortCutInput");
+const shortCutDisplay = document.querySelector("#shortCutDisplay");
 const nextSettings = document.querySelector("#nextSettings");
 const backSettings = document.querySelector("#backSettings");
 const pageNumber = document.querySelector("#pageNumber");
+chrome.storage.local.get(["shortCutKeys"], async ({ shortCutKeys }) => {
+    if (shortCutKeys == undefined) {
+        await chrome.storage.local.set({ shortCutKeys: ["alt", "shift", "s"] });
+        return (shortCutInput.value = "alt+shift+s");
+    }
+    shortCutInput.value = shortCutKeys.join("+");
+    shortCutDisplay.innerText = shortCutKeys.join(" + ");
+    shortCutInput.addEventListener("change", (e) => {
+        const value = e.target.value.trim().split("+");
+        if (!value.length)
+            return;
+        chrome.storage.local.set({
+            shortCutKeys: value,
+        });
+        shortCutInput.value = value.join("+");
+        shortCutDisplay.innerText = value.join(" + ");
+    });
+});
 chrome.storage.local.get("savedURLS", (result) => {
     let value = result["savedURLS"];
     if (value == undefined) {
@@ -63,8 +82,8 @@ chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
 });
 chrome.storage.local.get(["tabExclusive"], async ({ tabExclusive }) => {
     if (tabExclusive == undefined) {
-        await chrome.storage.local.set({ tabExclusive: "tab" });
-        return (tabExclusiveSelect.value = "tab");
+        await chrome.storage.local.set({ tabExclusive: "url" });
+        return (tabExclusiveSelect.value = "url");
     }
     tabExclusiveSelect.value = tabExclusive === "tab" ? "url" : "tab";
 });

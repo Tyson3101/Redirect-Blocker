@@ -1,4 +1,8 @@
 <html>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
+  />
   <style>
     * {
       text-align: center;
@@ -146,7 +150,7 @@
     }
   </style>
   <body>
-    <h1>Redirect Stopper</h1>
+    <h1>Redirect Blocker</h1>
     <span class="desc"
       ><i style="font-size: 3.9vw">
         <br />Stops Potential Malcious/Annoying Redirects<br /></i
@@ -249,11 +253,14 @@
     </div>
     <div class="shortCuts">
       <div class="shortCut remove">
-        <p>Toggle Redirect Stopper: <span>alt + shift + s</span></p>
+        <p>
+          Toggle Redirect Stopper:
+          <span id="shortCutDisplay">alt + shift + s</span>
+        </p>
       </div>
     </div>
     <i
-      >If redirect needed, just toogle off then back on,<br />Or go to a tab
+      >If redirect needed, just toogle off then back on,<br />Or go to a tab/url
       without the extension activated.</i
     >
     <h4 id="adChrome">
@@ -264,6 +271,25 @@
         >Chrome Web Store!</a
       >
     </h4>
+
+    <a
+      aria-label="Github Page"
+      target="_blank"
+      style="
+        position: absolute;
+        top: 0;
+        left: 0;
+        border: 0;
+        transform: scale(0.6);
+        text-decoration: none;
+        display: inline;
+        color: inherit;
+      "
+      href="https://github.com/Tyson3101/Redirect-Stopper"
+      class="github-corner"
+    >
+      <i style="font-size: 3rem" class="fa fa-github"></i
+    ></a>
     <script src="./script.js"></script>
   </body>
 </html>

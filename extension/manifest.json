@@ -1,11 +1,11 @@
 {
   "manifest_version": 3,
-  "name": "Redirect Stopper",
-  "version": "2.1.1",
+  "name": "Redirect Blocker",
+  "version": "3.0.0",
   "background": {
     "service_worker": "./dist/background.js"
   },
-  "description": "Redirect Stopper saves you from facing potential malicious/annoying redirects.",
+  "description": "Redirect Blocker saves you from facing potential malicious/annoying redirects.",
   "icons": {
     "16": "./img/Icon16.png",
     "32": "./img/Icon32.png",
