@@ -312,8 +312,3 @@ chrome.runtime.onMessage.addListener((msg) => {
     });
   }
 })();
-
-setInterval(() => {
-  console.log("Extension Tabs:");
-  console.log(extTabs);
-}, 6000);
