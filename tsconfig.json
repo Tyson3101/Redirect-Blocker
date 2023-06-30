@@ -5,7 +5,8 @@
     "lib": ["dom", "dom.iterable", "esnext"],
     "rootDir": "./src",
     "outDir": "extension/dist",
-    "removeComments": true
+    "removeComments": true,
+    "moduleResolution": "classic"
   },
   "exclude": ["extension/dist"]
 }

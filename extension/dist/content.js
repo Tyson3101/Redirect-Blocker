@@ -1,130 +1,58 @@
-let applicationIsOn = false;
-let tabId;
-let shortCutKeys = [];
-let removedLinks = [];
-const allowedToRedirectURLS = [];
-console.log("REDIRECT STOPPER ACTIVATED");
-let port;
-function connect() {
-    port = chrome.runtime.connect({ name: "keepAlive" });
-    port.onDisconnect.addListener(connect);
-    port.onMessage.addListener((msg) => {
-        console.log("received", msg, "from bg");
-    });
-}
-function getShortCutKeys() {
-    chrome.storage.local.get(["shortCutKeys"], (result) => {
-        if (result["shortCutKeys"] == undefined)
-            return (shortCutKeys = ["alt", "shift", "s"]);
-        shortCutKeys = [...result["shortCutKeys"]];
-        shortCutListener();
-    });
-    chrome.storage.onChanged.addListener((result) => {
-        let newShortCutKeys = result["shortCutKeys"]?.newValue;
-        if (newShortCutKeys == undefined)
-            return;
-        shortCutKeys = [...newShortCutKeys];
-    });
-}
-function addLinks() {
-    for (let link of removedLinks) {
-        link.element.href = link.href;
-    }
-}
-function removeLinks() {
-    const links = document.querySelectorAll("a");
-    removedLinks = [];
-    chrome.storage.local.get(["allowedURLS"], ({ allowedURLS }) => {
-        if (allowedURLS == undefined)
-            return;
-        links.forEach((link) => {
-            if (!link?.href)
-                return;
-            if (link.href.includes(location.hostname))
-                return;
-            if (link.target == "_blank" ||
-                link.href.toLowerCase().includes("javascript:"))
-                return;
-            if (allowedURLS.some((url) => url
-                .toLowerCase()
-                .replace("www.", "")
-                .startsWith(link.href.toLowerCase().replace("www.", ""))))
-                return;
-            removedLinks.push({ element: link, href: link.href });
-            link.href = `javascript:void('${link.href} : Change the Prevent URL Change option in settings');`;
-        });
-    });
-}
-function setUpRemoveLinksToDifferentSite() {
-    chrome.storage.local.get(["preventURLChange"], (result) => {
-        if (!applicationIsOn)
-            return;
-        if (result["preventURLChange"] == "true") {
-            removeLinks();
-        }
-        else {
-            if (removedLinks.length != 0)
-                addLinks();
-        }
-    });
-}
-function getTabID() {
-    chrome.runtime.sendMessage({ getTabID: true }, () => {
-        chrome.runtime.onMessage.addListener(function ({ id, ...request }) {
-            if (tabId !== undefined) {
-                if (request.isOn === true) {
-                    applicationIsOn = true;
-                    setUpRemoveLinksToDifferentSite();
-                }
-                else if (request.isOn === false) {
-                    applicationIsOn = false;
-                    if (removedLinks.length != 0)
-                        addLinks();
-                }
-            }
-            if (id)
-                tabId = id;
-        });
-    });
-}
-chrome.storage.onChanged.addListener((result) => {
-    if (result["preventURLChange"]?.newValue != undefined) {
-        setUpRemoveLinksToDifferentSite();
+let shortCutToggleKeys = ["alt", "shift", "s"];
+let pressedKeys = [];
+document.addEventListener("keydown", async (e) => {
+    if (!e.key)
+        return;
+    pressedKeys.push(e.key.toLowerCase());
+    if (await checkKeys(shortCutToggleKeys)) {
+        chrome.runtime.sendMessage({ toggle: true });
     }
 });
-connect();
-getShortCutKeys();
-getTabID();
-function shortCutListener() {
-    let pressedKeys = [];
-    function debounce(cb, delay = 200) {
-        let timeout;
-        return (...args) => {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => {
-                cb(...args);
-            }, delay);
-        };
-    }
-    const checkKeys = debounce(() => {
-        if (pressedKeys.length == shortCutKeys.length) {
-            let match = true;
-            for (let i = 0; i < pressedKeys.length; i++) {
-                if (pressedKeys[i] != shortCutKeys[i]) {
-                    match = false;
-                    break;
-                }
-            }
-            if (match) {
-                chrome.runtime.sendMessage({ shortCut: true });
-            }
-        }
-        pressedKeys = [];
-    });
-    document.addEventListener("keydown", (e) => {
-        if (!e.key)
+chrome.storage.sync.get("settings", (result) => {
+    const settings = result.settings;
+    if (!settings)
+        return;
+    shortCutToggleKeys = settings.shortCut;
+    console.log("Settings loaded", shortCutToggleKeys);
+});
+chrome.storage.onChanged.addListener((changes) => {
+    if (changes.settings) {
+        const settings = changes.settings.newValue;
+        if (!settings)
             return;
-        pressedKeys.push(e.key.toLowerCase());
-        checkKeys();
+        shortCutToggleKeys = settings.shortCut;
+    }
+});
+function shortCutDebounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+            pressedKeys = [];
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+function checkKeys(keysToCheck) {
+    return new Promise((resolve) => {
+        function debounceCB() {
+            if (!keysToCheck)
+                return resolve(false);
+            if (pressedKeys.length == keysToCheck.length) {
+                let match = true;
+                for (let i = 0; i < pressedKeys.length; i++) {
+                    if (pressedKeys[i] != keysToCheck[i]) {
+                        match = false;
+                        break;
+                    }
+                }
+                resolve(match);
+            }
+            else
+                resolve(false);
+        }
+        shortCutDebounce(debounceCB, 500)();
     });
 }

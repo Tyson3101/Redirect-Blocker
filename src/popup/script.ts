@@ -1,6 +1,8 @@
 const toggleBtn = document.querySelector(".toggleBtn") as HTMLButtonElement;
-const savedURLS = document.querySelector("#savedURLS") as HTMLTextAreaElement;
-const allowedURLS = document.querySelector(
+const savedURLsInput = document.querySelector(
+  "#savedURLs"
+) as HTMLTextAreaElement;
+const allowedURLsInput = document.querySelector(
   "#allowedURLS"
 ) as HTMLTextAreaElement;
 const tabExclusiveSelect = document.querySelector(
@@ -12,6 +14,7 @@ const preventURLSelect = document.querySelector(
 const shortCutInput = document.querySelector(
   "#shortCutInput"
 ) as HTMLInputElement;
+const shortCutBtn = document.querySelector("#shortCutBtn") as HTMLSpanElement;
 const shortCutDisplay = document.querySelector(
   "#shortCutDisplay"
 ) as HTMLSpanElement;
@@ -19,161 +22,91 @@ const nextSettings = document.querySelector("#nextSettings") as HTMLDivElement;
 const backSettings = document.querySelector("#backSettings") as HTMLDivElement;
 const pageNumber = document.querySelector("#pageNumber") as HTMLDivElement;
 
-chrome.storage.local.get(["shortCutKeys"], async ({ shortCutKeys }) => {
-  if (shortCutKeys == undefined) {
-    await chrome.storage.local.set({ shortCutKeys: ["alt", "shift", "s"] });
-    return (shortCutInput.value = "alt+shift+s");
+chrome.storage.local.get("extensionTabs", async ({ extensionTabs }) => {
+  if (!extensionTabs) extensionTabs = [];
+  const activeTab = (
+    await chrome.tabs.query({ active: true, currentWindow: true })
+  )?.[0];
+  if (!activeTab) return;
+  const extTab = extensionTabs.find((tab) => tab.id === activeTab.id);
+  if (extTab) {
+    changeToggleButton(true);
+  } else {
+    changeToggleButton(false);
   }
-  shortCutInput.value = shortCutKeys.join("+");
-  shortCutDisplay.innerText = shortCutKeys.join(" + ");
-  shortCutInput.addEventListener("change", (e) => {
-    const value = (e.target as HTMLSelectElement).value.trim().split("+");
-    if (!value.length) return;
-    chrome.storage.local.set({
-      shortCutKeys: value,
-    });
-    shortCutInput.value = value.join("+");
-    shortCutDisplay.innerText = value.join(" + ");
-  });
 });
 
-chrome.storage.local.get("savedURLS", (result) => {
-  let value = result["savedURLS"];
-  if (value == undefined) {
-    chrome.storage.local.set({
-      savedURLS: ["https://soap2day.day/"],
-    });
-    value = ["https://soap2day.day/"];
-  }
-  savedURLS.value = value.join("\n");
-});
-
-savedURLS.addEventListener("input", () => {
-  const value = savedURLS.value.toLowerCase().trim().split("\n");
-  if (
-    value.some(
-      (url) =>
-        !url.match(
-          /[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)?/gi
-        )
-    )
-  )
-    return;
-  chrome.storage.local.set({
-    savedURLS: savedURLS.value.toLowerCase().trim().split("\n"),
-  });
-});
-
-chrome.storage.local.get("allowedURLS", (result) => {
-  let value = result["allowedURLS"];
-  if (value == undefined) {
-    chrome.storage.local.set({
-      allowedURLS: ["https://youtube.com/@Tyson3101"],
-    });
-    value = ["https://youtube.com/@Tyson3101"];
-  }
-  allowedURLS.value = value.join("\n");
-});
-
-allowedURLS.addEventListener("input", () => {
-  const value = allowedURLS.value.toLowerCase().trim().split("\n");
-  if (
-    value.some(
-      (url) =>
-        !url.match(
-          /[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)?/gi
-        )
-    )
-  )
-    return;
-  console.log(value);
-  chrome.storage.local.set({
-    allowedURLS: value,
-  });
-});
-
-chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
-  const tab = tabs[0];
-  chrome.storage.onChanged.addListener((result) => {
-    let value = result["applicationIsOn" + tab.id]?.newValue;
-    if (value == undefined) return;
-    changeToggleButton(value);
-    applicationIsOn = value;
-  });
-
-  chrome.storage.local.get(["applicationIsOn" + tab.id], (result) => {
-    let value = result["applicationIsOn" + tab.id];
-    if (value == undefined) value = false;
-    changeToggleButton(result["applicationIsOn" + tab.id]);
-    applicationIsOn = result["applicationIsOn" + tab.id];
-  });
-});
-
-chrome.storage.local.get(["tabExclusive"], async ({ tabExclusive }) => {
-  if (tabExclusive == undefined) {
-    await chrome.storage.local.set({ tabExclusive: "url" });
-    return (tabExclusiveSelect.value = "url");
-  }
-  tabExclusiveSelect.value = tabExclusive === "tab" ? "url" : "tab";
-});
-
-tabExclusiveSelect.addEventListener("change", (e) => {
-  chrome.storage.local.set({
-    tabExclusive: tabExclusiveSelect.value === "tab" ? "url" : "tab",
-  });
-});
-chrome.storage.local.get(["preventURLChange"], async ({ preventURLChange }) => {
-  if (preventURLChange == undefined) {
-    await chrome.storage.local.set({ preventURLChange: "false" });
-    return (preventURLSelect.value = "false");
-  }
-  preventURLSelect.value = preventURLChange;
-});
-
-preventURLSelect.addEventListener("change", (e) => {
-  chrome.storage.local.set({
-    preventURLChange: (e.target as HTMLSelectElement).value,
-  });
-});
-
-chrome.storage.local.get(["shortCutKeys"], async ({ shortCutKeys }) => {
-  if (shortCutKeys == undefined) {
-    await chrome.storage.local.set({ shortCutKeys: ["alt", "shift", "s"] });
-    return (shortCutInput.value = "alt+shift+s");
-  }
-  shortCutInput.value = shortCutKeys.join("+");
-  shortCutInput.addEventListener("change", (e) => {
-    const value = (e.target as HTMLSelectElement).value.trim().split("+");
-    if (!value.length) return;
-    chrome.storage.local.set({
-      shortCutKeys: value,
-    });
-    shortCutInput.value = value.join("+");
-  });
-});
-
-document.onclick = (e: Event) => {
-  if (
-    (e.target as HTMLButtonElement).classList.contains("toggleBtn") &&
-    applicationIsOn !== null
-  ) {
-    applicationIsOn = !applicationIsOn;
-    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
-      chrome.storage.local.set({
-        ["applicationIsOn" + tabs[0].id]: applicationIsOn,
+toggleBtn.onclick = async () => {
+  const activeTab = (
+    await chrome.tabs.query({ active: true, currentWindow: true })
+  )?.[0];
+  if (!activeTab) return;
+  chrome.storage.local.get("extensionTabs", async ({ extensionTabs }) => {
+    if (!extensionTabs) extensionTabs = [];
+    if (extensionTabs.find((tab) => tab.id === activeTab.id)) {
+      extensionTabs = extensionTabs.filter((tab) => tab.id !== activeTab.id);
+      chrome.storage.local.set({ extensionTabs });
+      changeToggleButton(false);
+    } else {
+      extensionTabs.push({
+        id: activeTab.id,
+        windowId: activeTab.windowId,
+        url: activeTab.url,
+        active: activeTab.active,
+        windowActive:
+          activeTab.windowId === (await chrome.windows.getCurrent()).id,
       });
-      chrome.runtime.sendMessage({
-        isOn: applicationIsOn,
-        tabId: tabs[0].id,
-        windowId: tabs[0].windowId,
-        tabExclusive: tabExclusiveSelect.value,
-        lastURL: tabs[0].url,
-      });
-    });
-  }
-  if ((e.target as HTMLButtonElement).id === "shortCutBtn")
-    document.querySelector(".shortCut").classList.toggle("remove");
+      chrome.storage.local.set({ extensionTabs });
+      changeToggleButton(true);
+    }
+  });
 };
+
+shortCutBtn.onclick = () => {
+  document.querySelector(".shortCut").classList.toggle("remove");
+};
+
+chrome.storage.sync.get("settings", (result) => {
+  const settings = result.settings;
+  savedURLsInput.value = settings.savedURLs.join("\n");
+  allowedURLsInput.value = settings.allowedURLs.join("\n");
+  tabExclusiveSelect.value = settings.tabExclusive ? "tab" : "url";
+  preventURLSelect.value = settings.preventURLChange ? "true" : "false";
+  shortCutInput.value = settings.shortCut.join(" + ");
+  shortCutDisplay.innerText = `${settings.shortCut.join(" + ")}`;
+
+  savedURLsInput.onchange = () => {
+    const savedURLs = savedURLsInput.value
+      .trim()
+      .toLowerCase()
+      .split("\n")
+      .filter(isValidURL);
+    chrome.storage.sync.set({ settings: { ...settings, savedURLs } });
+  };
+  allowedURLsInput.onchange = () => {
+    const allowedURLs = allowedURLsInput.value
+      .trim()
+      .toLowerCase()
+      .split("\n")
+      .filter(isValidURL);
+    chrome.storage.sync.set({ settings: { ...settings, allowedURLs } });
+  };
+  tabExclusiveSelect.onchange = () => {
+    const tabExclusive = tabExclusiveSelect.value === "tab";
+    chrome.storage.sync.set({ settings: { ...settings, tabExclusive } });
+  };
+  preventURLSelect.onchange = () => {
+    const preventURLChange = preventURLSelect.value === "true";
+    chrome.storage.sync.set({ settings: { ...settings, preventURLChange } });
+  };
+  shortCutInput.onchange = () => {
+    const shortCut = shortCutInput.value
+      .trim()
+      .split("+")
+      .map((s) => s.trim().toLowerCase());
+    chrome.storage.sync.set({ settings: { ...settings, shortCut } });
+  };
+});
 
 nextSettings.onclick = () => {
   const settingPage = document.querySelectorAll(
@@ -218,4 +151,13 @@ function changeToggleButton(result: boolean) {
   toggleBtn.classList.remove(result ? "off" : "on");
   toggleBtn.classList.add(result ? "on" : "off");
   toggleBtn.classList.remove("loading");
+}
+
+function isValidURL(url: string) {
+  try {
+    new URL(url);
+    return true;
+  } catch (err) {
+    return false;
+  }
 }

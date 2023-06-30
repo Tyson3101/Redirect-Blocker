@@ -12,9 +12,9 @@
     "128": "./img/Icon128.png"
   },
   "action": {
-    "default_icon": "./img/Icon128.png",
+    "default_icon": "./img/popupIcon128.png",
     "default_popup": "/dist/popup/popup.html",
-    "default_title": "Redirect Stopper"
+    "default_title": "Redirect Blocker"
   },
   "content_scripts": [
     {
@@ -22,5 +22,5 @@
       "js": ["./dist/content.js"]
     }
   ],
-  "permissions": ["tabs", "storage"]
+  "permissions": ["tabs", "storage", "offscreen"]
 }

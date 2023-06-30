@@ -63,6 +63,7 @@
       flex-direction: column;
       margin-top: 0.2rem;
       margin-bottom: 1.2em;
+      font-size: 0.8rem;
     }
     .settings {
       margin-top: 0.5rem;
@@ -182,8 +183,8 @@
           </p></label
         >
         <select name="turnOffOnWhen" id="turnOffOnWhen">
-          <option value="url">Tab</option>
-          <option value="tab">URL</option>
+          <option value="tab">Tab</option>
+          <option value="url">URL</option>
         </select>
       </div>
       <div data-settingIndex="2" class="settingsPage">
@@ -272,24 +273,48 @@
       >
     </h4>
 
-    <a
-      aria-label="Github Page"
-      target="_blank"
-      style="
-        position: absolute;
-        top: 0;
-        left: 0;
-        border: 0;
-        transform: scale(0.6);
-        text-decoration: none;
-        display: inline;
-        color: inherit;
-      "
-      href="https://github.com/Tyson3101/Redirect-Stopper"
-      class="github-corner"
-    >
-      <i style="font-size: 3rem" class="fa fa-github"></i
-    ></a>
+    <div>
+      <a
+        aria-label="Github Page"
+        target="_blank"
+        style="
+          position: absolute;
+          top: 0;
+          left: 0;
+          border: 0;
+          transform: scale(0.6);
+          text-decoration: none;
+          display: inline;
+          color: inherit;
+        "
+        href="https://github.com/Tyson3101/Redirect-Blocker"
+        class="github-corner"
+      >
+        <i style="font-size: 3rem" class="fa fa-github"></i
+      ></a>
+      <a
+        aria-label="Github Page"
+        target="_blank"
+        style="
+          position: absolute;
+          top: 0;
+          right: 0;
+          border: 0;
+          transform: scale(0.6);
+          text-decoration: none;
+          display: inline;
+          color: inherit;
+        "
+        href="/dist/popup/help.html"
+        class="help-corner"
+      >
+        <i
+          style="font-size: 3rem"
+          class="fa fa-question-circle"
+          aria-hidden="true"
+        ></i
+      ></a>
+    </div>
     <script src="./script.js"></script>
   </body>
 </html>
