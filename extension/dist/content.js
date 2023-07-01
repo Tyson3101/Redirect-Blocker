@@ -13,7 +13,6 @@ chrome.storage.sync.get("settings", (result) => {
     if (!settings)
         return;
     shortCutToggleKeys = settings.shortCut;
-    console.log("Settings loaded", shortCutToggleKeys);
 });
 chrome.storage.onChanged.addListener((changes) => {
     if (changes.settings) {

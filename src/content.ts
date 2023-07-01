@@ -1,3 +1,4 @@
+// SHORTCUTS LISTENER
 let shortCutToggleKeys: string[] = ["alt", "shift", "s"];
 let pressedKeys: string[] = [];
 
@@ -14,7 +15,6 @@ chrome.storage.sync.get("settings", (result) => {
   const settings = result.settings;
   if (!settings) return;
   shortCutToggleKeys = settings.shortCut;
-  console.log("Settings loaded", shortCutToggleKeys);
 });
 
 chrome.storage.onChanged.addListener((changes) => {

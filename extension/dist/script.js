@@ -12,7 +12,9 @@ const pageNumber = document.querySelector("#pageNumber");
 chrome.storage.local.get("extensionTabs", async ({ extensionTabs }) => {
     if (!extensionTabs)
         extensionTabs = [];
-    const activeTab = (await chrome.tabs.query({ active: true, currentWindow: true }))?.[0];
+    const activeTab = (await chrome.tabs
+        .query({ active: true, currentWindow: true })
+        .catch(() => null))?.[0];
     if (!activeTab)
         return;
     const extTab = extensionTabs.find((tab) => tab.id === activeTab.id);
@@ -24,7 +26,9 @@ chrome.storage.local.get("extensionTabs", async ({ extensionTabs }) => {
     }
 });
 toggleBtn.onclick = async () => {
-    const activeTab = (await chrome.tabs.query({ active: true, currentWindow: true }))?.[0];
+    const activeTab = (await chrome.tabs
+        .query({ active: true, currentWindow: true })
+        .catch(() => null))?.[0];
     if (!activeTab)
         return;
     chrome.storage.local.get("extensionTabs", async ({ extensionTabs }) => {
@@ -32,7 +36,7 @@ toggleBtn.onclick = async () => {
             extensionTabs = [];
         if (extensionTabs.find((tab) => tab.id === activeTab.id)) {
             extensionTabs = extensionTabs.filter((tab) => tab.id !== activeTab.id);
-            chrome.storage.local.set({ extensionTabs });
+            chrome.storage.local.set({ extensionTabs }).catch(console.error);
             changeToggleButton(false);
         }
         else {
@@ -43,7 +47,7 @@ toggleBtn.onclick = async () => {
                 active: activeTab.active,
                 windowActive: activeTab.windowId === (await chrome.windows.getCurrent()).id,
             });
-            chrome.storage.local.set({ extensionTabs });
+            chrome.storage.local.set({ extensionTabs }).catch(console.error);
             changeToggleButton(true);
         }
     });
