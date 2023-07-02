@@ -22,6 +22,14 @@ const nextSettings = document.querySelector("#nextSettings") as HTMLDivElement;
 const backSettings = document.querySelector("#backSettings") as HTMLDivElement;
 const pageNumber = document.querySelector("#pageNumber") as HTMLDivElement;
 
+const placeholderSettings = {
+  tabExclusive: false,
+  preventURLChange: false,
+  savedURLs: ["https://soap2day.day/", "https://vipleague.im/"],
+  allowedURLs: ["https://youtube.com/@Tyson3101"],
+  shortCut: ["alt", "shift", "s"],
+};
+
 chrome.storage.local.get("extensionTabs", async ({ extensionTabs }) => {
   if (!extensionTabs) extensionTabs = [];
   const activeTab = (
@@ -71,18 +79,32 @@ shortCutBtn.onclick = () => {
 };
 
 chrome.storage.sync.get("settings", (result) => {
-  const settings = result.settings;
+  if (!result.settings) {
+    result.settings = placeholderSettings;
+  }
+  updateSettingsUI(result.settings);
+  handleSettingsChange(result.settings);
+});
+
+chrome.storage.onChanged.addListener((changes) => {
+  if (!changes.settings) return;
+  updateSettingsUI(changes.settings.newValue);
+});
+
+function updateSettingsUI(settings: typeof placeholderSettings) {
+  if (!settings) settings = placeholderSettings;
   savedURLsInput.value = settings.savedURLs.join("\n");
   allowedURLsInput.value = settings.allowedURLs.join("\n");
   tabExclusiveSelect.value = settings.tabExclusive ? "tab" : "url";
   preventURLSelect.value = settings.preventURLChange ? "true" : "false";
   shortCutInput.value = settings.shortCut.join(" + ");
   shortCutDisplay.innerText = `${settings.shortCut.join(" + ")}`;
+}
 
+function handleSettingsChange(settings: typeof placeholderSettings) {
   savedURLsInput.onchange = () => {
     const savedURLs = savedURLsInput.value
       .trim()
-      .toLowerCase()
       .split("\n")
       .filter(isValidURL);
     chrome.storage.sync.set({ settings: { ...settings, savedURLs } });
@@ -90,13 +112,16 @@ chrome.storage.sync.get("settings", (result) => {
   allowedURLsInput.onchange = () => {
     const allowedURLs = allowedURLsInput.value
       .trim()
-      .toLowerCase()
       .split("\n")
       .filter(isValidURL);
     chrome.storage.sync.set({ settings: { ...settings, allowedURLs } });
   };
   tabExclusiveSelect.onchange = () => {
     const tabExclusive = tabExclusiveSelect.value === "tab";
+    console.log(
+      "Updated tabExclusive to",
+      tabExclusive ? "tab exclusive" : "url exclusive"
+    );
     chrome.storage.sync.set({ settings: { ...settings, tabExclusive } });
   };
   preventURLSelect.onchange = () => {
@@ -110,45 +135,45 @@ chrome.storage.sync.get("settings", (result) => {
       .map((s) => s.trim().toLowerCase());
     chrome.storage.sync.set({ settings: { ...settings, shortCut } });
   };
-});
 
-nextSettings.onclick = () => {
-  const settingPage = document.querySelectorAll(
-    ".settingsPage"
-  ) as NodeListOf<HTMLDivElement>;
-  const active = [...settingPage].find((page) =>
-    page.classList.contains("active")
-  );
-  const next = (() => {
-    const nextIndex = parseInt(active.dataset["settingindex"]) + 1;
-    if (nextIndex >= settingPage.length) return settingPage[0];
-    return settingPage[nextIndex];
-  })();
-  pageNumber.innerText = `${parseInt(next.dataset["settingindex"]) + 1}/5`;
-  active.classList.remove("active");
-  next.classList.add("active");
-};
+  nextSettings.onclick = () => {
+    const settingPage = document.querySelectorAll(
+      ".settingsPage"
+    ) as NodeListOf<HTMLDivElement>;
+    const active = [...settingPage].find((page) =>
+      page.classList.contains("active")
+    );
+    const next = (() => {
+      const nextIndex = parseInt(active.dataset["settingindex"]) + 1;
+      if (nextIndex >= settingPage.length) return settingPage[0];
+      return settingPage[nextIndex];
+    })();
+    pageNumber.innerText = `${parseInt(next.dataset["settingindex"]) + 1}/5`;
+    active.classList.remove("active");
+    next.classList.add("active");
+  };
 
-backSettings.onclick = () => {
-  const settingPage = document.querySelectorAll(
-    ".settingsPage"
-  ) as NodeListOf<HTMLDivElement>;
-  const active = [...settingPage].find((page) =>
-    page.classList.contains("active")
-  );
-  const last = (() => {
-    const lastIndex = parseInt(active.dataset["settingindex"]) - 1;
-    if (lastIndex < 0) {
-      pageNumber.innerText = `5/5`;
-      return settingPage[4];
-    } else {
-      pageNumber.innerText = `${parseInt(active.dataset["settingindex"])}/5`;
-      return settingPage[lastIndex];
-    }
-  })();
-  active.classList.remove("active");
-  last.classList.add("active");
-};
+  backSettings.onclick = () => {
+    const settingPage = document.querySelectorAll(
+      ".settingsPage"
+    ) as NodeListOf<HTMLDivElement>;
+    const active = [...settingPage].find((page) =>
+      page.classList.contains("active")
+    );
+    const last = (() => {
+      const lastIndex = parseInt(active.dataset["settingindex"]) - 1;
+      if (lastIndex < 0) {
+        pageNumber.innerText = `5/5`;
+        return settingPage[4];
+      } else {
+        pageNumber.innerText = `${parseInt(active.dataset["settingindex"])}/5`;
+        return settingPage[lastIndex];
+      }
+    })();
+    active.classList.remove("active");
+    last.classList.add("active");
+  };
+}
 
 function changeToggleButton(result: boolean) {
   toggleBtn.innerText = result ? "Turn Off" : "Turn On";

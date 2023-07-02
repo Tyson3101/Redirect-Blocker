@@ -6,14 +6,22 @@ interface Tab {
   windowActive?: boolean;
 }
 
-const extTabs: Tab[] = [];
+const extensionTabs: Tab[] = [];
 
 let keepAlive: ReturnType<typeof setInterval>;
 
-const builtInURLs = ["https://google.com/", "chrome://", "chrome-extension://"];
+const builtInURLs = [
+  "https://google.com/",
+  "chrome://",
+  "chrome-extension://",
+  "https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_key_values",
+  "https://github.com/Tyson3101/",
+  "https://chrome.google.com/webstore/detail/redirect-blocker/egmgebeelgaakhaoodlmnimbfemfgdah",
+];
+
 let allowedURLs = [...builtInURLs];
 
-const defaultSettings = {
+const initialSettings = {
   tabExclusive: false,
   preventURLChange: false,
   savedURLs: ["https://soap2day.day/", "https://vipleague.im/"],
@@ -21,10 +29,13 @@ const defaultSettings = {
   shortCut: ["alt", "shift", "s"],
 };
 
-let settings = defaultSettings;
+let settings = initialSettings;
 
+// Event Listeners
 chrome.tabs.onCreated.addListener(async (tab) => {
-  const extTab = extTabs.find((t) => t.active && t.windowId === tab.windowId);
+  const extTab = extensionTabs.find(
+    (t) => t.active && t.windowId === tab.windowId
+  );
   if (!extTab) return;
 
   // Incase of bookmark/links 'open in new tab'
@@ -54,7 +65,7 @@ chrome.tabs.onCreated.addListener(async (tab) => {
       ...settings.savedURLs,
       new URL(extTab.url).origin,
     ];
-    if (urlCheck(combinedURLs, tab.pendingUrl || tab.url)) {
+    if (isURLMatch(combinedURLs, tab.pendingUrl || tab.url)) {
       if (createdTabActive) {
         return await chrome.tabs
           .update(tab.id, { active: true })
@@ -66,19 +77,18 @@ chrome.tabs.onCreated.addListener(async (tab) => {
 
 chrome.tabs.onUpdated.addListener(async (tabId, _changeInfo, tab) => {
   // Check if saved URL. If so, add to extTabs
-  let extTab = extTabs.find((t) => t.id === tabId);
-  if (urlCheck(settings.savedURLs, tab.url)) {
-    if (!extTab)
-      return (extTab = (await modifyExtTab(tab, false, true)) as Tab);
+  let extTab = extensionTabs.find((t) => t.id === tabId);
+  if (isURLMatch(settings.savedURLs, tab.url)) {
+    if (!extTab) return (extTab = (await updateExtensionTab(tab, true)) as Tab);
   }
 
   // Check if URL is allowed (+ saved). If so, return + checks.
-  if (urlCheck([...settings.savedURLs, ...allowedURLs], tab.url)) {
+  if (isURLMatch([...settings.savedURLs, ...allowedURLs], tab.url)) {
     if (extTab) {
       if (new URL(extTab.url).origin !== new URL(tab.url).origin) {
-        if (!settings.tabExclusive) return removeExtTab(extTab);
+        if (!settings.tabExclusive) return removeExtensionTab(extTab, true);
       }
-      return modifyExtTab(tab, extTab);
+      return updateExtensionTab(tab);
     }
   }
 
@@ -91,36 +101,36 @@ chrome.tabs.onUpdated.addListener(async (tabId, _changeInfo, tab) => {
         return chrome.tabs.update(tabId, { url: extTab.url }).catch(() => null);
       } else {
         if (!settings.tabExclusive) {
-          return removeExtTab(extTab);
+          return removeExtensionTab(extTab, true);
         }
       }
     }
   }
-  if (extTab) modifyExtTab(tab, extTab);
+  if (extTab) updateExtensionTab(tab);
 });
 
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   const tab = await chrome.tabs.get(activeInfo.tabId).catch(() => null);
   if (!tab) return;
-  for (let extTab of extTabs) {
+  for (let extTab of extensionTabs) {
     // If ext tab is this tab, then it is active so update
     if (extTab.id === tab.id) {
-      modifyExtTab(tab, extTab);
+      updateExtensionTab(tab);
       continue;
     }
     // If tab is active and same window, but not active tab, update.
     if (extTab.active && extTab.windowId === tab.windowId) {
       const extChromeTab = await chrome.tabs.get(extTab.id).catch(() => null);
-      if (!extChromeTab) return removeExtTab(extTab);
-      modifyExtTab(extChromeTab, extTab);
+      if (!extChromeTab) return removeExtensionTab(extTab);
+      updateExtensionTab(extChromeTab);
       continue;
     }
   }
 });
 
 chrome.windows.onCreated.addListener(async (window) => {
-  const extTab = extTabs.find((t) => t.active && t.windowActive);
-  if (!extTab || window.incognito) return; // if no redirect tab, or incognito window, remove
+  const extTab = extensionTabs.find((t) => t.active && t.windowActive);
+  if (!extTab) return;
 
   const popupTab = (
     await chrome.tabs.query({ windowId: window.id }).catch(() => null)
@@ -133,100 +143,114 @@ chrome.windows.onCreated.addListener(async (window) => {
       new URL(extTab.url).origin,
     ];
 
-    if (!urlCheck(combinedURLs, popupTab.pendingUrl || popupTab.url)) {
+    if (!isURLMatch(combinedURLs, popupTab.pendingUrl || popupTab.url)) {
       chrome.windows.remove(window.id).catch(() => null);
     }
   }
 });
 
-async function tabMoved(tabId: number) {
-  const extTab = extTabs.find((t) => t.id === tabId);
-  if (!extTab) return;
-  const tab = await chrome.tabs.get(tabId).catch(() => null);
-  modifyExtTab(tab, extTab);
-}
-
-chrome.tabs.onAttached.addListener(tabMoved);
-
-chrome.tabs.onDetached.addListener(tabMoved);
-
 chrome.tabs.onRemoved.addListener((tabId) => {
-  const extTab = extTabs.find((t) => t.id === tabId);
+  const extTab = extensionTabs.find((t) => t.id === tabId);
   if (!extTab) return;
-  removeExtTab(extTab);
+  removeExtensionTab(extTab);
 });
 
-async function modifyExtTab(
-  tab: chrome.tabs.Tab | Tab[],
-  update?: Tab | false,
-  instantSave?: boolean
+async function onTabMoved(tabId: number) {
+  const extTab = extensionTabs.find((t) => t.id === tabId);
+  if (!extTab) return;
+  const tab = await chrome.tabs.get(tabId).catch(() => null);
+  updateExtensionTab(tab);
+}
+
+chrome.tabs.onAttached.addListener(onTabMoved);
+
+chrome.tabs.onDetached.addListener(onTabMoved);
+
+chrome.storage.onChanged.addListener((changes) => {
+  const newSettings = changes.settings?.newValue;
+  if (newSettings) {
+    allowedURLs = [...newSettings.allowedURLs, ...builtInURLs];
+    settings = changes.settings.newValue;
+  }
+  if (changes.extensionTabs?.newValue) {
+    setExtensionTabs(changes.extensionTabs.newValue);
+  }
+});
+
+chrome.runtime.onMessage.addListener(async (message) => {
+  if (message.toggle === true) {
+    const tab = (
+      await chrome.tabs.query({ active: true, currentWindow: true })
+    )?.[0];
+    if (!tab) return;
+    const extTab = extensionTabs.find((t) => t.id === tab.id);
+    if (extTab) {
+      removeExtensionTab(extTab, true);
+    } else {
+      updateExtensionTab(tab, true);
+    }
+  }
+});
+
+async function setExtensionTabs(newExtensionTabs: Tab[]) {
+  extensionTabs.splice(0, extensionTabs.length, ...newExtensionTabs);
+  saveExtTabs();
+}
+
+// Helper Functions
+async function updateExtensionTab(
+  tab: chrome.tabs.Tab,
+  instantSave: boolean = false
 ) {
   if (!tab) return;
 
-  // If tab is array, replace extTabs with array
-  if (Array.isArray(tab)) {
-    extTabs.splice(0, extTabs.length, ...tab);
-    save();
-    return extTabs;
-  }
+  let extTabIndex = extensionTabs.findIndex((t) => t.id === tab.id);
 
-  // If no update return extTab if exists
-  let extTabIndex = extTabs.findIndex((t) => t.id === tab.id);
-  let extTab = extTabs[extTabIndex];
-  if (extTabIndex >= 0 && !update) return extTabs[extTabIndex];
+  const updatedTabData = {
+    id: tab.id,
+    url: tab.url,
+    active: tab.active,
+    windowId: tab.windowId,
+    windowActive: tab.windowId === (await getCurrentWindowId()),
+  };
 
-  // If update, update, else create new extTab
-  if (update) {
-    extTabs[extTabIndex] = {
-      ...extTabs[extTabIndex],
-      ...update,
-      url: tab.url,
-      active: tab.active,
-      windowId: tab.windowId,
-      windowActive: tab.windowId === (await getCurrentWindowId()),
-    };
-    save();
-    return extTabs[extTabIndex];
+  // If tab exists, update it, else push it
+  if (extTabIndex >= 0) {
+    extensionTabs[extTabIndex] = updatedTabData;
   } else {
-    extTab = {
-      id: tab.id,
-      windowId: tab.windowId,
-      url: tab.url,
-      active: tab.active,
-      windowActive: tab.windowId === (await getCurrentWindowId()),
-    };
-    extTabs.push(extTab);
-    save();
-    return extTab;
+    extensionTabs.push(updatedTabData);
   }
-  function save() {
-    if (instantSave) filterAndSave();
-    else saveExtensionTabsToStorage();
-  }
+
+  // Save extTabs
+  if (instantSave) saveExtTabs();
+  else debouncedSaveExtTabs();
+
+  return updatedTabData;
 }
 
-function removeExtTab(extTab: Tab, instantSave?: boolean) {
-  const extTabIndex = extTabs.findIndex((t) => t.id === extTab.id);
+function removeExtensionTab(extTab: Tab, instantSave: boolean = false) {
+  const extTabIndex = extensionTabs.findIndex((t) => t.id === extTab.id);
   if (extTabIndex < 0) return;
-  extTabs.splice(extTabIndex, 1);
-  if (instantSave) filterAndSave();
-  else saveExtensionTabsToStorage();
+  extensionTabs.splice(extTabIndex, 1);
+  if (instantSave) saveExtTabs();
+  else debouncedSaveExtTabs();
 }
 
-function filterAndSave() {
+function saveExtTabs() {
   // Remove duplicates of extTabs with set
-  const extTabsSet = [...new Set(extTabs.map((t) => t.id))].map((id) =>
-    extTabs.find((t) => t.id === id)
+  const extTabsSet = [...new Set(extensionTabs.map((t) => t.id))].map((id) =>
+    extensionTabs.find((t) => t.id === id)
   );
-  extTabs.splice(0, extTabs.length, ...extTabsSet);
-  chrome.storage.local.set({ extensionTabs: extTabs });
+  extensionTabs.splice(0, extensionTabs.length, ...extTabsSet);
+  console.log("extTabs", extensionTabs);
+  chrome.storage.local.set({ extensionTabs: extensionTabs });
 }
 
-let saveExtensionTabsToStorage = debounce(() => {
-  filterAndSave();
+let debouncedSaveExtTabs = debounce(() => {
+  saveExtTabs();
 
   // Check if any extTabs left, if not, don't need to persist service worker
-  if (!extTabs.length) {
+  if (!extensionTabs.length) {
     if (keepAlive) clearInterval(keepAlive);
     keepAlive = null;
     return;
@@ -234,24 +258,29 @@ let saveExtensionTabsToStorage = debounce(() => {
   if (!keepAlive) persistServiceWorker();
 }, 5000);
 
-async function getCurrentWindowId() {
-  const window = await chrome.windows.getCurrent();
-  return window.id;
-}
-
 function persistServiceWorker() {
   if (keepAlive) clearInterval(keepAlive);
   keepAlive = setInterval(() => {
-    chrome.tabs.query({}, (tabs) => {
-      console.log(
-        `${extTabs.length}/${tabs.length} TABS HAVE EXTENSION TURNED ON.`
-      );
-    });
-  }, 1000 * 25); //Acts as prevention of 30 sec inactivity;
+    checkTabs(); // This calls chrome api, which keeps service worker alive
+  }, 1000 * 25); // Acts as a keep alive for service worker (30 sec of inactivty = service worker idle)
 }
 
+function checkTabs() {
+  chrome.tabs.query({}).then((tabs) => {
+    for (let i = extensionTabs.length - 1; i >= 0; i--) {
+      // If tab doesn't exist, remove from extTabs (JUST IN CASE)
+      if (!tabs.find((t) => t.id === extensionTabs[i].id)) {
+        extensionTabs.splice(i, 1);
+        console.log("Found non-existant tab");
+      }
+    }
+    debouncedSaveExtTabs();
+  });
+}
+
+// Utility Functions
 // Chat GPT
-function urlCheck(urls: string[], url: string) {
+function isURLMatch(urls: string[], url: string) {
   if (!url) return false;
   const normalizeUrl = (url: string) =>
     url
@@ -291,39 +320,18 @@ function debounce(func: Function, wait: number) {
 }
 // END Github Co-Pilot
 
-chrome.storage.onChanged.addListener((changes) => {
-  const newSettings = changes.settings?.newValue;
-  if (newSettings) {
-    allowedURLs = [...newSettings.allowedURLs, ...builtInURLs];
-    settings = changes.settings.newValue;
-  }
-  if (changes.extensionTabs?.newValue) {
-    modifyExtTab(changes.extensionTabs.newValue);
-  }
-});
+async function getCurrentWindowId() {
+  const window = await chrome.windows.getCurrent();
+  return window.id;
+}
 
-// Shortcut Toggle Extension
-chrome.runtime.onMessage.addListener(async (message) => {
-  if (message.toggle === true) {
-    const tab = (
-      await chrome.tabs.query({ active: true, currentWindow: true })
-    )?.[0];
-    if (!tab) return;
-    const extTab = extTabs.find((t) => t.id === tab.id);
-    if (extTab) {
-      removeExtTab(extTab, true);
-    } else {
-      modifyExtTab(tab, false, true);
-    }
-  }
-});
-
-(function init() {
+// Initialization
+(function initializeExtension() {
   chrome.storage.sync.get("settings", (res) => {
-    let savedSettings = res.settings as typeof defaultSettings;
+    let savedSettings = res.settings as typeof initialSettings;
     if (!savedSettings) {
-      savedSettings = defaultSettings;
-      chrome.storage.sync.set({ settings: defaultSettings });
+      savedSettings = initialSettings;
+      chrome.storage.sync.set({ settings: initialSettings });
     }
     allowedURLs = [...savedSettings.allowedURLs, ...builtInURLs];
     settings = savedSettings;
@@ -331,7 +339,10 @@ chrome.runtime.onMessage.addListener(async (message) => {
   chrome.storage.local.get("extensionTabs", (res) => {
     if (!res.extensionTabs) {
       chrome.storage.local.set({ extensionTabs: [] });
+    } else {
+      setExtensionTabs(res.extensionTabs);
     }
-    modifyExtTab(res.extensionTabs);
+
+    if (extensionTabs.length) persistServiceWorker();
   });
 })();
