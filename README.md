@@ -1,6 +1,6 @@
 # Redirect Blocker
 
-<img src="./extension/img/icon128.png" />
+<img src="./extension/img/Icon128.png" />
 
 #### Redirect Blocker saves you from facing potential malicious/annoying redirects when on specific websites.
 
@@ -16,7 +16,7 @@
 - Open Chrome and go to `chrome://extensions`,
 - Enable "Developer mode",
 - Click "Load unpacked extension",
-- Select the downloaded folder.
+- Select the `extension` folder.
 
 ## How to turn it on?
 
