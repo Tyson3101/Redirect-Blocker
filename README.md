@@ -22,6 +22,6 @@
 
 #### To turn it on just click the extension icon and a popup will appear, you will be able to turn the extension on, OR use the customizable shortcut: alt + shift + s!
 
-<img src="./extension/img/ShowcaseImg.png" width="500" height="300"/>
+<img src="./images/ShowcaseImg.png" width="500" height="300"/>
 
 ###### By Tyson3101
