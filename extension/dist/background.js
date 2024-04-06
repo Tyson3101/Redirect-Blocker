@@ -1,9 +1,11 @@
+let allTabsModeIsOn = false;
 const extensionTabs = [];
+const disabledTabs = [];
 let keepAlive;
 const builtInURLs = [
     "https://google.com/",
     "chrome://",
-    "chrome-extension://",
+    "chrome-extension://egmgebeelgaakhaoodlmnimbfemfgdah",
     "https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_key_values",
     "https://github.com/Tyson3101/",
     "https://chrome.google.com/webstore/detail/redirect-blocker/egmgebeelgaakhaoodlmnimbfemfgdah",
@@ -14,16 +16,18 @@ const initialSettings = {
     preventURLChange: false,
     savedURLs: ["https://soap2day.day/", "https://vipleague.im/"],
     allowedURLs: ["https://youtube.com/@Tyson3101"],
-    shortCut: ["alt", "shift", "s"],
+    shortCutSingle: ["alt", "shift", "s"],
+    shortCutAll: ["alt", "shift", "a"],
 };
 let settings = initialSettings;
 chrome.tabs.onCreated.addListener(async (tab) => {
     const extTab = extensionTabs.find((t) => t.active && t.windowId === tab.windowId);
-    if (!extTab)
+    if (!extTab && !allTabsModeIsOn)
         return;
     let createdTabActive = tab.active;
-    if (extTab.windowId === tab.windowId) {
-        await chrome.tabs.update(extTab.id, { active: true }).catch(() => null);
+    if (!extTab || extTab.windowId === tab.windowId) {
+        if (extTab)
+            await chrome.tabs.update(extTab.id, { active: true }).catch(() => null);
         let intMs = 0;
         let urlPropertiesInterval = setInterval(async () => {
             const updatedTab = await chrome.tabs.get(tab.id).catch(() => null);
@@ -32,28 +36,35 @@ chrome.tabs.onCreated.addListener(async (tab) => {
             intMs += 20;
             if (updatedTab.url || updatedTab.pendingUrl) {
                 clearInterval(urlPropertiesInterval);
-                checkRedirect(updatedTab).catch(() => null);
+                checkRedirect(updatedTab, extTab).catch(() => null);
             }
             else if (intMs >= 1000) {
                 return clearInterval(urlPropertiesInterval);
             }
         }, 20);
     }
-    async function checkRedirect(tab) {
+    async function checkRedirect(tab, extTab) {
         const combinedURLs = [
             ...allowedURLs,
             ...settings.savedURLs,
             new URL(extTab.url).origin,
         ];
-        if (isURLMatch(combinedURLs, tab.pendingUrl || tab.url)) {
-            if (createdTabActive) {
-                return await chrome.tabs
-                    .update(tab.id, { active: true })
-                    .catch(() => null);
+        if (extTab) {
+            if (isURLMatch(combinedURLs, tab.pendingUrl || tab.url)) {
+                if (createdTabActive) {
+                    await chrome.tabs.update(tab.id, { active: true }).catch(() => null);
+                }
+                if (allTabsModeIsOn) {
+                    await updateExtensionTab(tab, true);
+                }
+                return;
             }
+            else
+                await chrome.tabs.remove(tab.id).catch(() => null);
         }
-        else
-            await chrome.tabs.remove(tab.id).catch(() => null);
+        else if (allTabsModeIsOn) {
+            await updateExtensionTab(tab, true);
+        }
     }
 });
 chrome.tabs.onUpdated.addListener(async (tabId, _changeInfo, tab) => {
@@ -65,7 +76,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, _changeInfo, tab) => {
     if (isURLMatch([...settings.savedURLs, ...allowedURLs], tab.url)) {
         if (extTab) {
             if (new URL(extTab.url).origin !== new URL(tab.url).origin) {
-                if (!settings.tabExclusive)
+                if (!settings.tabExclusive && !allTabsModeIsOn)
                     return removeExtensionTab(extTab, true);
             }
             return updateExtensionTab(tab);
@@ -80,7 +91,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, _changeInfo, tab) => {
                 return chrome.tabs.update(tabId, { url: extTab.url }).catch(() => null);
             }
             else {
-                if (!settings.tabExclusive) {
+                if (!settings.tabExclusive && !allTabsModeIsOn) {
                     return removeExtensionTab(extTab, true);
                 }
             }
@@ -147,9 +158,12 @@ chrome.storage.onChanged.addListener((changes) => {
     if (changes.extensionTabs?.newValue) {
         setExtensionTabs(changes.extensionTabs.newValue);
     }
+    if (changes.allTabsModeIsOn?.newValue) {
+        allTabsModeIsOn = changes.allTabsModeIsOn.newValue;
+    }
 });
 chrome.runtime.onMessage.addListener(async (message) => {
-    if (message.toggle === true) {
+    if (message.toggleSingle === true) {
         const tab = (await chrome.tabs.query({ active: true, currentWindow: true }))?.[0];
         if (!tab)
             return;
@@ -160,6 +174,19 @@ chrome.runtime.onMessage.addListener(async (message) => {
         else {
             updateExtensionTab(tab, true);
         }
+    }
+    else if (message.toggleAll === true) {
+        if (allTabsModeIsOn) {
+            extensionTabs.splice(0, extensionTabs.length);
+            allTabsModeIsOn = false;
+        }
+        else {
+            const tabs = await chrome.tabs.query({}).catch(() => []);
+            extensionTabs.splice(0, extensionTabs.length, ...tabs);
+            allTabsModeIsOn = true;
+        }
+        saveExtTabs();
+        chrome.storage.local.set({ allTabsModeIsOn: allTabsModeIsOn });
     }
 });
 async function setExtensionTabs(newExtensionTabs) {
@@ -277,9 +304,9 @@ async function getCurrentWindowId() {
         allowedURLs = [...savedSettings.allowedURLs, ...builtInURLs];
         settings = savedSettings;
     });
-    chrome.storage.local.get("extensionTabs", (res) => {
+    chrome.storage.local.get(["extensionTabs"], async (res) => {
         if (!res.extensionTabs) {
-            chrome.storage.local.set({ extensionTabs: [] });
+            chrome.storage.local.set({ extensionTabs: [], allTabsModeIsOn: false });
         }
         else {
             setExtensionTabs(res.extensionTabs);

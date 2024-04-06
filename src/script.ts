@@ -1,4 +1,12 @@
 const toggleBtn = document.querySelector(".toggleBtn") as HTMLButtonElement;
+
+const currentTabExtMode = document.querySelector(
+  ".currentTabExtMode"
+) as HTMLSpanElement;
+const allTabsExtMode = document.querySelector(
+  ".allTabsExtMode"
+) as HTMLSpanElement;
+
 const savedURLsInput = document.querySelector(
   "#savedURLs"
 ) as HTMLTextAreaElement;
@@ -14,6 +22,7 @@ const preventURLSelect = document.querySelector(
 const shortCutInput = document.querySelector(
   "#shortCutInput"
 ) as HTMLInputElement;
+
 const shortCutBtn = document.querySelector("#shortCutBtn") as HTMLSpanElement;
 const shortCutDisplay = document.querySelector(
   "#shortCutDisplay"
@@ -30,8 +39,15 @@ const placeholderSettings = {
   shortCut: ["alt", "shift", "s"],
 };
 
+let extensionModePopUp = "single";
+let allTabsModeIsOn_POPUP = false;
+let currentTabIsOn_POPUP = false;
+
+chrome.storage.local.set({ extensionModePopUp: "single" }).catch(() => {});
+
 chrome.storage.local.get("extensionTabs", async ({ extensionTabs }) => {
   if (!extensionTabs) extensionTabs = [];
+
   const activeTab = (
     await chrome.tabs
       .query({ active: true, currentWindow: true })
@@ -41,8 +57,15 @@ chrome.storage.local.get("extensionTabs", async ({ extensionTabs }) => {
   const extTab = extensionTabs.find((tab) => tab.id === activeTab.id);
   if (extTab) {
     changeToggleButton(true);
+    currentTabIsOn_POPUP = true;
   } else {
     changeToggleButton(false);
+  }
+});
+
+chrome.storage.local.get("allTabsModeIsOn", ({ allTabsModeIsOn }) => {
+  if (allTabsModeIsOn) {
+    allTabsModeIsOn_POPUP = true;
   }
 });
 
@@ -53,30 +76,76 @@ toggleBtn.onclick = async () => {
       .catch(() => null)
   )?.[0];
   if (!activeTab) return;
-  chrome.storage.local.get("extensionTabs", async ({ extensionTabs }) => {
+  chrome.storage.local.get(["extensionTabs"], async ({ extensionTabs }) => {
     if (!extensionTabs) extensionTabs = [];
-    if (extensionTabs.find((tab) => tab.id === activeTab.id)) {
-      extensionTabs = extensionTabs.filter((tab) => tab.id !== activeTab.id);
-      chrome.storage.local.set({ extensionTabs }).catch(console.error);
-      changeToggleButton(false);
+
+    if (extensionModePopUp === "single") {
+      const extTab = extensionTabs.find((tab) => tab.id === activeTab.id);
+      if (extTab) {
+        extensionTabs = extensionTabs.filter((tab) => tab.id !== activeTab.id);
+        currentTabIsOn_POPUP = false;
+      } else {
+        extensionTabs.push(activeTab);
+        currentTabIsOn_POPUP = true;
+      }
+      chrome.storage.local.set({ extensionTabs });
+      changeToggleButton(currentTabIsOn_POPUP);
     } else {
-      extensionTabs.push({
-        id: activeTab.id,
-        windowId: activeTab.windowId,
-        url: activeTab.url,
-        active: activeTab.active,
-        windowActive:
-          activeTab.windowId === (await chrome.windows.getCurrent()).id,
-      });
-      chrome.storage.local.set({ extensionTabs }).catch(console.error);
-      changeToggleButton(true);
+      if (allTabsModeIsOn_POPUP) {
+        extensionTabs = [];
+        allTabsModeIsOn_POPUP = false;
+        currentTabIsOn_POPUP = false;
+        changeToggleButton(false);
+        chrome.storage.local.set({ extensionTabs, allTabsModeIsOn: false });
+      } else {
+        const tabs = await chrome.tabs.query({}).catch(() => []);
+        extensionTabs = tabs;
+        allTabsModeIsOn_POPUP = true;
+        currentTabIsOn_POPUP = true;
+        changeToggleButton(true);
+        chrome.storage.local.set({ extensionTabs, allTabsModeIsOn: true });
+      }
     }
   });
+};
+
+currentTabExtMode.onclick = () => {
+  chrome.storage.local.set({ extensionModePopUp: "single" });
+  changeExtensionMode("single");
+};
+
+allTabsExtMode.onclick = () => {
+  chrome.storage.local.set({ extensionModePopUp: "all" });
+  changeExtensionMode("all");
 };
 
 shortCutBtn.onclick = () => {
   document.querySelector(".shortCut").classList.toggle("remove");
 };
+
+function changeExtensionMode(result: "single" | "all") {
+  currentTabExtMode.classList.remove("selected");
+  allTabsExtMode.classList.remove("selected");
+  if (result === "single") {
+    extensionModePopUp = "single";
+    currentTabExtMode.classList.add("selected");
+
+    if (currentTabIsOn_POPUP) {
+      changeToggleButton(true);
+    } else {
+      changeToggleButton(false);
+    }
+  } else {
+    extensionModePopUp = "all";
+    allTabsExtMode.classList.add("selected");
+
+    if (allTabsModeIsOn_POPUP) {
+      changeToggleButton(true);
+    } else {
+      changeToggleButton(false);
+    }
+  }
+}
 
 chrome.storage.sync.get("settings", (result) => {
   if (!result.settings) {

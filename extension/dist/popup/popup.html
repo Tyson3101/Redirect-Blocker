@@ -35,11 +35,17 @@
     button {
       cursor: pointer;
     }
+
+    .toggleContainer div *:not(#shortCutBtn) {
+      margin: 0;
+    }
+
     .toggleBtn {
       border: 1px solid black;
       height: 3.7rem;
       width: 10rem;
       font-size: 1.5rem;
+      margin-bottom: 0;
     }
     .off {
       background-color: rgb(157, 231, 157);
@@ -56,12 +62,34 @@
       background-color: rgb(205, 119, 119);
     }
 
+    .extensionModes {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      font-size: 1rem;
+      margin-bottom: 0;
+    }
+
+    .extensionModes a {
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .extensionModes .selected {
+      text-decoration: underline;
+      font-weight: bold;
+    }
+
+    #shortCutBtn {
+      margin: 0.3rem 0;
+    }
+
     .shortCuts {
       display: flex;
       justify-content: center;
       align-items: center;
       flex-direction: column;
-      margin-top: 0.2rem;
       margin-bottom: 1.2em;
       font-size: 0.8rem;
     }
@@ -127,7 +155,7 @@
     .shortCut {
       border: 1px solid black;
       background-color: rgb(165, 195, 204);
-      width: fit-content;
+      width: 68%;
       margin-bottom: 0.2rem;
       position: absolute;
       top: 1rem;
@@ -136,6 +164,16 @@
     .shortCut span {
       padding: 0.2em;
     }
+
+    .shortCut span.titleShortCut {
+      font-weight: bold;
+    }
+
+    .shortCut span#shortCutDisplay {
+      font-weight: normal;
+      background-color: rgba(220, 209, 209, 0.4);
+    }
+
     .remove {
       display: none;
     }
@@ -156,9 +194,20 @@
       ><i style="font-size: 3.9vw">
         <br />Stops Potential Malcious/Annoying Redirects<br /></i
     ></span>
-    <button class="toggleBtn">Start</button>
-    <i id="error" style="color: red; display: block"></i>
-    <button id="shortCutBtn" style="margin-top: 0.2rem">Show Shortcuts</button>
+    <div class="toggleContainer">
+      <button class="toggleBtn">Start</button>
+
+      <div class="extensionModes">
+        <p>
+          <a href="#" class="currentTabExtMode selected">Current Tab</a>
+        </p>
+        <p>
+          <a href="#" class="allTabsExtMode">All Tabs</a>
+        </p>
+      </div>
+      <i id="error" style="color: red; display: block"></i>
+      <button id="shortCutBtn">Show Shortcuts</button>
+    </div>
     <div class="settings">
       <h2>Settings</h2>
       <div data-settingIndex="0" class="settingsPage list active">
@@ -255,8 +304,12 @@
     <div class="shortCuts">
       <div class="shortCut remove">
         <p>
-          Toggle Redirect Stopper:
+          <span class="titleShortCut">Toggle Active Tab:</span>
           <span id="shortCutDisplay">alt + shift + s</span>
+        </p>
+        <p>
+          <span class="titleShortCut">Toggle All Tabs:</span>
+          <span id="shortCutDisplay">alt + shift + a</span>
         </p>
       </div>
     </div>
