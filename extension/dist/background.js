@@ -16,8 +16,8 @@ const initialSettings = {
     preventURLChange: false,
     savedURLs: ["https://soap2day.day/", "https://vipleague.im/"],
     allowedURLs: ["https://youtube.com/@Tyson3101"],
-    shortCutSingle: ["alt", "shift", "s"],
-    shortCutAll: ["alt", "shift", "a"],
+    shortCutToggleSingleKeys: ["alt", "shift", "s"],
+    shortCutToggleAllKeys: ["alt", "shift", "a"],
 };
 let settings = initialSettings;
 chrome.tabs.onCreated.addListener(async (tab) => {
@@ -35,8 +35,8 @@ chrome.tabs.onCreated.addListener(async (tab) => {
                 return clearInterval(urlPropertiesInterval);
             intMs += 20;
             if (updatedTab.url || updatedTab.pendingUrl) {
-                clearInterval(urlPropertiesInterval);
                 checkRedirect(updatedTab, extTab).catch(() => null);
+                clearInterval(urlPropertiesInterval);
             }
             else if (intMs >= 1000) {
                 return clearInterval(urlPropertiesInterval);
@@ -44,12 +44,12 @@ chrome.tabs.onCreated.addListener(async (tab) => {
         }, 20);
     }
     async function checkRedirect(tab, extTab) {
-        const combinedURLs = [
-            ...allowedURLs,
-            ...settings.savedURLs,
-            new URL(extTab.url).origin,
-        ];
         if (extTab) {
+            const combinedURLs = [
+                ...allowedURLs,
+                ...settings.savedURLs,
+                new URL(extTab.url).origin,
+            ];
             if (isURLMatch(combinedURLs, tab.pendingUrl || tab.url)) {
                 if (createdTabActive) {
                     await chrome.tabs.update(tab.id, { active: true }).catch(() => null);
@@ -231,6 +231,10 @@ function saveExtTabs() {
     extensionTabs.splice(0, extensionTabs.length, ...extTabsSet);
     console.log("extTabs", extensionTabs);
     chrome.storage.local.set({ extensionTabs: extensionTabs });
+    if (!extensionTabs.length) {
+        allTabsModeIsOn = false;
+        chrome.storage.local.set({ allTabsModeIsOn: false });
+    }
 }
 let debouncedSaveExtTabs = debounce(() => {
     saveExtTabs();
@@ -238,6 +242,7 @@ let debouncedSaveExtTabs = debounce(() => {
         if (keepAlive)
             clearInterval(keepAlive);
         keepAlive = null;
+        allTabsModeIsOn = false;
         return;
     }
     if (!keepAlive)

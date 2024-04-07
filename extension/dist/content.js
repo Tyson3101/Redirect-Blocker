@@ -5,14 +5,23 @@ chrome.storage.sync.get("settings", (result) => {
     const settings = result.settings;
     if (!settings)
         return;
-    shortCutToggleSingleKeys = settings.shortCut;
+    if (!settings.shortCutToggleSingleKeys || !settings.shortCutToggleAllKeys) {
+        if (!settings.shortCutToggleSingleKeys)
+            settings.shortCutToggleSingleKeys = shortCutToggleSingleKeys;
+        if (!settings.shortCutToggleAllKeys)
+            settings.shortCutToggleAllKeys = shortCutToggleAllKeys;
+        chrome.storage.sync.set({ settings });
+    }
+    shortCutToggleSingleKeys = settings.shortCutToggleSingleKeys;
+    shortCutToggleAllKeys = settings.shortCutToggleAllKeys;
 });
 chrome.storage.onChanged.addListener((changes) => {
     if (changes.settings) {
         const settings = changes.settings.newValue;
         if (!settings)
             return;
-        shortCutToggleSingleKeys = settings.shortCut;
+        shortCutToggleSingleKeys = settings.shortCutToggleSingleKeys;
+        shortCutToggleAllKeys = settings.shortCutToggleAllKeys;
     }
 });
 shortCutListener();
@@ -30,6 +39,8 @@ function shortCutListener() {
     const checkKeys = (keysToCheck, waitDebounce = true, delay = 700) => {
         return new Promise((resolve) => {
             function debounceCB() {
+                if (!keysToCheck?.length)
+                    return resolve(false);
                 if (pressedKeys.length == keysToCheck.length) {
                     let match = true;
                     for (let i = 0; i < pressedKeys.length; i++) {

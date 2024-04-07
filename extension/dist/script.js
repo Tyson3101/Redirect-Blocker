@@ -5,18 +5,22 @@ const savedURLsInput = document.querySelector("#savedURLs");
 const allowedURLsInput = document.querySelector("#allowedURLS");
 const tabExclusiveSelect = document.querySelector("#turnOffOnWhen");
 const preventURLSelect = document.querySelector("#preventURLChange");
-const shortCutInput = document.querySelector("#shortCutInput");
+const shortCutSingleInput = document.querySelector("#shortCutSingleInput");
+const shortCutAllInput = document.querySelector("#shortCutAllInput");
 const shortCutBtn = document.querySelector("#shortCutBtn");
-const shortCutDisplay = document.querySelector("#shortCutDisplay");
+const shortCutSingleDisplay = document.querySelector("#shortCutSingleDisplay");
+const shortCutAllDisplay = document.querySelector("#shortCutAllDisplay");
 const nextSettings = document.querySelector("#nextSettings");
 const backSettings = document.querySelector("#backSettings");
 const pageNumber = document.querySelector("#pageNumber");
+const pageList = document.querySelector(".pageList");
 const placeholderSettings = {
     tabExclusive: false,
     preventURLChange: false,
     savedURLs: ["https://soap2day.day/", "https://vipleague.im/"],
     allowedURLs: ["https://youtube.com/@Tyson3101"],
-    shortCut: ["alt", "shift", "s"],
+    shortCutToggleSingleKeys: ["alt", "shift", "s"],
+    shortCutToggleAllKeys: ["alt", "shift", "a"],
 };
 let extensionModePopUp = "single";
 let allTabsModeIsOn_POPUP = false;
@@ -102,6 +106,12 @@ function changeExtensionMode(result) {
     if (result === "single") {
         extensionModePopUp = "single";
         currentTabExtMode.classList.add("selected");
+        document
+            .querySelector(".shortCutSingleContainer")
+            .classList.remove("hideShortCut");
+        document
+            .querySelector(".shortCutAllContainer")
+            .classList.add("hideShortCut");
         if (currentTabIsOn_POPUP) {
             changeToggleButton(true);
         }
@@ -112,6 +122,12 @@ function changeExtensionMode(result) {
     else {
         extensionModePopUp = "all";
         allTabsExtMode.classList.add("selected");
+        document
+            .querySelector(".shortCutSingleContainer")
+            .classList.add("hideShortCut");
+        document
+            .querySelector(".shortCutAllContainer")
+            .classList.remove("hideShortCut");
         if (allTabsModeIsOn_POPUP) {
             changeToggleButton(true);
         }
@@ -125,7 +141,7 @@ chrome.storage.sync.get("settings", (result) => {
         result.settings = placeholderSettings;
     }
     updateSettingsUI(result.settings);
-    handleSettingsChange(result.settings);
+    handleSettingsChange();
 });
 chrome.storage.onChanged.addListener((changes) => {
     if (!changes.settings)
@@ -139,40 +155,57 @@ function updateSettingsUI(settings) {
     allowedURLsInput.value = settings.allowedURLs.join("\n");
     tabExclusiveSelect.value = settings.tabExclusive ? "tab" : "url";
     preventURLSelect.value = settings.preventURLChange ? "true" : "false";
-    shortCutInput.value = settings.shortCut.join(" + ");
-    shortCutDisplay.innerText = `${settings.shortCut.join(" + ")}`;
+    shortCutSingleInput.value = settings.shortCutToggleSingleKeys.join(" + ");
+    shortCutAllInput.value = settings.shortCutToggleAllKeys.join(" + ");
+    shortCutSingleDisplay.innerText =
+        settings.shortCutToggleSingleKeys.join(" + ");
+    shortCutAllDisplay.innerText = settings.shortCutToggleAllKeys.join(" + ");
 }
-function handleSettingsChange(settings) {
+function handleSettingsChange() {
     savedURLsInput.onchange = () => {
         const savedURLs = savedURLsInput.value
             .trim()
             .split("\n")
             .filter(isValidURL);
-        chrome.storage.sync.set({ settings: { ...settings, savedURLs } });
+        saveSettings("savedURLs", savedURLs);
     };
     allowedURLsInput.onchange = () => {
         const allowedURLs = allowedURLsInput.value
             .trim()
             .split("\n")
             .filter(isValidURL);
-        chrome.storage.sync.set({ settings: { ...settings, allowedURLs } });
+        saveSettings("allowedURLs", allowedURLs);
     };
     tabExclusiveSelect.onchange = () => {
         const tabExclusive = tabExclusiveSelect.value === "tab";
-        console.log("Updated tabExclusive to", tabExclusive ? "tab exclusive" : "url exclusive");
-        chrome.storage.sync.set({ settings: { ...settings, tabExclusive } });
+        saveSettings("tabExclusive", tabExclusive);
     };
     preventURLSelect.onchange = () => {
         const preventURLChange = preventURLSelect.value === "true";
-        chrome.storage.sync.set({ settings: { ...settings, preventURLChange } });
+        saveSettings("preventURLChange", preventURLChange);
     };
-    shortCutInput.onchange = () => {
-        const shortCut = shortCutInput.value
+    shortCutSingleInput.onchange = () => {
+        const shortCut = shortCutSingleInput.value
             .trim()
             .split("+")
             .map((s) => s.trim().toLowerCase());
-        chrome.storage.sync.set({ settings: { ...settings, shortCut } });
+        saveSettings("shortCutToggleSingleKeys", shortCut);
     };
+    shortCutAllInput.onchange = () => {
+        const shortCut = shortCutAllInput.value
+            .trim()
+            .split("+")
+            .map((s) => s.trim().toLowerCase());
+        saveSettings("shortCutToggleAllKeys", shortCut);
+    };
+    function saveSettings(setting, value) {
+        chrome.storage.sync.get("settings", (result) => {
+            const settings = result.settings;
+            chrome.storage.sync.set({
+                settings: { ...settings, [setting]: value },
+            });
+        });
+    }
     nextSettings.onclick = () => {
         const settingPage = document.querySelectorAll(".settingsPage");
         const active = [...settingPage].find((page) => page.classList.contains("active"));
@@ -185,6 +218,8 @@ function handleSettingsChange(settings) {
         pageNumber.innerText = `${parseInt(next.dataset["settingindex"]) + 1}/5`;
         active.classList.remove("active");
         next.classList.add("active");
+        pageList.querySelector(".active").classList.remove("active");
+        pageList.children[parseInt(next.dataset["settingindex"])].classList.add("active");
     };
     backSettings.onclick = () => {
         const settingPage = document.querySelectorAll(".settingsPage");
@@ -202,8 +237,23 @@ function handleSettingsChange(settings) {
         })();
         active.classList.remove("active");
         last.classList.add("active");
+        pageList.querySelector(".active").classList.remove("active");
+        pageList.children[parseInt(last.dataset["settingindex"])].classList.add("active");
     };
 }
+pageList.onclick = (e) => {
+    const ele = e.target;
+    if (ele?.tagName?.toLowerCase() == "a") {
+        const settingPage = document.querySelectorAll(".settingsPage");
+        const activePage = [...settingPage].find((page) => page.classList.contains("active"));
+        const nextPage = settingPage[parseInt(ele.dataset["pageindex"])];
+        pageNumber.innerText = `${parseInt(nextPage.dataset["settingindex"]) + 1}/5`;
+        activePage.classList.remove("active");
+        nextPage.classList.add("active");
+        pageList.querySelector(".active").classList.remove("active");
+        ele.classList.add("active");
+    }
+};
 function changeToggleButton(result) {
     toggleBtn.innerText = result ? "Turn Off" : "Turn On";
     toggleBtn.classList.remove(result ? "off" : "on");

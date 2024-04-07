@@ -116,6 +116,24 @@
     .settings select {
       margin-bottom: 0.2rem;
     }
+
+    .shortCutSettings {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+
+    .shortCutSettings span {
+      display: inline-block;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .shortCutSettings .hideShortCut {
+      display: none;
+    }
+
     #nextSettings {
       position: absolute;
       right: 3px;
@@ -152,6 +170,22 @@
       display: block;
       top: 0;
     }
+
+    .pageList {
+      display: block;
+      margin-top: 5px;
+      margin-bottom: 0;
+    }
+    .pageList * {
+      display: inline-block;
+      margin-right: 11px;
+      text-decoration: none;
+    }
+    .pageList .active {
+      text-decoration: underline;
+      font-weight: 500;
+    }
+
     .shortCut {
       border: 1px solid black;
       background-color: rgb(165, 195, 204);
@@ -181,7 +215,7 @@
     textarea.urlsList {
       width: 90%;
       text-align: left;
-      height: 15vh;
+      height: 14vh;
       resize: none;
       border: 1px solid black;
       background-color: rgb(165, 195, 204);
@@ -226,15 +260,15 @@
           ><p style="font-size: 1rem">
             Tab exclusive or URL exclusive
             <i style="font-size: 0.7em; display: block"
-              >Auto turn off when tab deleted OR when the URL hostname
-              changes</i
-            >
+              >Auto turn off when tab deleted OR when the URL hostname changes
+            </i>
           </p></label
         >
         <select name="turnOffOnWhen" id="turnOffOnWhen">
           <option value="tab">Tab</option>
           <option value="url">URL</option>
         </select>
+        <i>Only applies for single toggled tabs</i>
       </div>
       <div data-settingIndex="2" class="settingsPage">
         <label for="shortCutInput"
@@ -254,13 +288,26 @@
             >
           </p></label
         >
-        <input
-          type="text"
-          name="shortCutInput"
-          id="shortCutInput"
-          value="alt + shift + s"
-          style="width: 40%"
-        />
+        <div class="shortCutSettings">
+          <span class="shortCutSingleContainer"
+            >Current Tab:
+            <input
+              type="text"
+              name="shortCutSingleInput"
+              id="shortCutSingleInput"
+              value="alt + shift + s"
+              style="width: 40%"
+          /></span>
+          <span class="shortCutAllContainer hideShortCut"
+            >All Tabs:
+            <input
+              type="text"
+              name="shortCutAllInput"
+              id="shortCutAllInput"
+              value="alt + shift + a"
+              style="width: 40%"
+          /></span>
+        </div>
         <p>
           See
           <a
@@ -301,15 +348,22 @@
       <div id="pageNumber">1/5</div>
       <div id="nextSettings"><a href="#">Next Page &#8594;</a></div>
     </div>
+    <div class="pageList">
+      <a href="#" data-pageIndex="0" class="active">Saved URLS</a>
+      <a href="#" data-pageIndex="1">Tab/URL Exclusive</a>
+      <a href="#" data-pageIndex="2">Shortcuts</a>
+      <a href="#" data-pageIndex="3">Allowed URLs</a>
+      <a href="#" data-pageIndex="4">Same Tab Redirects</a>
+    </div>
     <div class="shortCuts">
       <div class="shortCut remove">
         <p>
           <span class="titleShortCut">Toggle Active Tab:</span>
-          <span id="shortCutDisplay">alt + shift + s</span>
+          <span id="shortCutSingleDisplay">alt + shift + s</span>
         </p>
         <p>
           <span class="titleShortCut">Toggle All Tabs:</span>
-          <span id="shortCutDisplay">alt + shift + a</span>
+          <span id="shortCutAllDisplay">alt + shift + a</span>
         </p>
       </div>
     </div>

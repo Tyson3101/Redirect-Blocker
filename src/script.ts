@@ -19,24 +19,33 @@ const tabExclusiveSelect = document.querySelector(
 const preventURLSelect = document.querySelector(
   "#preventURLChange"
 ) as HTMLSelectElement;
-const shortCutInput = document.querySelector(
-  "#shortCutInput"
+const shortCutSingleInput = document.querySelector(
+  "#shortCutSingleInput"
+) as HTMLInputElement;
+const shortCutAllInput = document.querySelector(
+  "#shortCutAllInput"
 ) as HTMLInputElement;
 
 const shortCutBtn = document.querySelector("#shortCutBtn") as HTMLSpanElement;
-const shortCutDisplay = document.querySelector(
-  "#shortCutDisplay"
+const shortCutSingleDisplay = document.querySelector(
+  "#shortCutSingleDisplay"
 ) as HTMLSpanElement;
+const shortCutAllDisplay = document.querySelector(
+  "#shortCutAllDisplay"
+) as HTMLSpanElement;
+
 const nextSettings = document.querySelector("#nextSettings") as HTMLDivElement;
 const backSettings = document.querySelector("#backSettings") as HTMLDivElement;
 const pageNumber = document.querySelector("#pageNumber") as HTMLDivElement;
+const pageList = document.querySelector(".pageList") as HTMLDivElement;
 
 const placeholderSettings = {
   tabExclusive: false,
   preventURLChange: false,
   savedURLs: ["https://soap2day.day/", "https://vipleague.im/"],
   allowedURLs: ["https://youtube.com/@Tyson3101"],
-  shortCut: ["alt", "shift", "s"],
+  shortCutToggleSingleKeys: ["alt", "shift", "s"],
+  shortCutToggleAllKeys: ["alt", "shift", "a"],
 };
 
 let extensionModePopUp = "single";
@@ -130,6 +139,13 @@ function changeExtensionMode(result: "single" | "all") {
     extensionModePopUp = "single";
     currentTabExtMode.classList.add("selected");
 
+    document
+      .querySelector(".shortCutSingleContainer")
+      .classList.remove("hideShortCut");
+    document
+      .querySelector(".shortCutAllContainer")
+      .classList.add("hideShortCut");
+
     if (currentTabIsOn_POPUP) {
       changeToggleButton(true);
     } else {
@@ -138,6 +154,13 @@ function changeExtensionMode(result: "single" | "all") {
   } else {
     extensionModePopUp = "all";
     allTabsExtMode.classList.add("selected");
+
+    document
+      .querySelector(".shortCutSingleContainer")
+      .classList.add("hideShortCut");
+    document
+      .querySelector(".shortCutAllContainer")
+      .classList.remove("hideShortCut");
 
     if (allTabsModeIsOn_POPUP) {
       changeToggleButton(true);
@@ -152,7 +175,7 @@ chrome.storage.sync.get("settings", (result) => {
     result.settings = placeholderSettings;
   }
   updateSettingsUI(result.settings);
-  handleSettingsChange(result.settings);
+  handleSettingsChange();
 });
 
 chrome.storage.onChanged.addListener((changes) => {
@@ -166,44 +189,63 @@ function updateSettingsUI(settings: typeof placeholderSettings) {
   allowedURLsInput.value = settings.allowedURLs.join("\n");
   tabExclusiveSelect.value = settings.tabExclusive ? "tab" : "url";
   preventURLSelect.value = settings.preventURLChange ? "true" : "false";
-  shortCutInput.value = settings.shortCut.join(" + ");
-  shortCutDisplay.innerText = `${settings.shortCut.join(" + ")}`;
+
+  shortCutSingleInput.value = settings.shortCutToggleSingleKeys.join(" + ");
+  shortCutAllInput.value = settings.shortCutToggleAllKeys.join(" + ");
+
+  shortCutSingleDisplay.innerText =
+    settings.shortCutToggleSingleKeys.join(" + ");
+  shortCutAllDisplay.innerText = settings.shortCutToggleAllKeys.join(" + ");
 }
 
-function handleSettingsChange(settings: typeof placeholderSettings) {
+function handleSettingsChange() {
   savedURLsInput.onchange = () => {
     const savedURLs = savedURLsInput.value
       .trim()
       .split("\n")
       .filter(isValidURL);
-    chrome.storage.sync.set({ settings: { ...settings, savedURLs } });
+    saveSettings("savedURLs", savedURLs);
   };
   allowedURLsInput.onchange = () => {
     const allowedURLs = allowedURLsInput.value
       .trim()
       .split("\n")
       .filter(isValidURL);
-    chrome.storage.sync.set({ settings: { ...settings, allowedURLs } });
+    saveSettings("allowedURLs", allowedURLs);
   };
   tabExclusiveSelect.onchange = () => {
     const tabExclusive = tabExclusiveSelect.value === "tab";
-    console.log(
-      "Updated tabExclusive to",
-      tabExclusive ? "tab exclusive" : "url exclusive"
-    );
-    chrome.storage.sync.set({ settings: { ...settings, tabExclusive } });
+    saveSettings("tabExclusive", tabExclusive);
   };
   preventURLSelect.onchange = () => {
     const preventURLChange = preventURLSelect.value === "true";
-    chrome.storage.sync.set({ settings: { ...settings, preventURLChange } });
+    saveSettings("preventURLChange", preventURLChange);
   };
-  shortCutInput.onchange = () => {
-    const shortCut = shortCutInput.value
+  shortCutSingleInput.onchange = () => {
+    const shortCut = shortCutSingleInput.value
       .trim()
       .split("+")
       .map((s) => s.trim().toLowerCase());
-    chrome.storage.sync.set({ settings: { ...settings, shortCut } });
+
+    saveSettings("shortCutToggleSingleKeys", shortCut);
   };
+  shortCutAllInput.onchange = () => {
+    const shortCut = shortCutAllInput.value
+      .trim()
+      .split("+")
+      .map((s) => s.trim().toLowerCase());
+
+    saveSettings("shortCutToggleAllKeys", shortCut);
+  };
+
+  function saveSettings(setting: string, value: any) {
+    chrome.storage.sync.get("settings", (result) => {
+      const settings = result.settings;
+      chrome.storage.sync.set({
+        settings: { ...settings, [setting]: value },
+      });
+    });
+  }
 
   nextSettings.onclick = () => {
     const settingPage = document.querySelectorAll(
@@ -220,6 +262,11 @@ function handleSettingsChange(settings: typeof placeholderSettings) {
     pageNumber.innerText = `${parseInt(next.dataset["settingindex"]) + 1}/5`;
     active.classList.remove("active");
     next.classList.add("active");
+
+    pageList.querySelector(".active").classList.remove("active");
+    pageList.children[parseInt(next.dataset["settingindex"])].classList.add(
+      "active"
+    );
   };
 
   backSettings.onclick = () => {
@@ -241,8 +288,35 @@ function handleSettingsChange(settings: typeof placeholderSettings) {
     })();
     active.classList.remove("active");
     last.classList.add("active");
+
+    pageList.querySelector(".active").classList.remove("active");
+    pageList.children[parseInt(last.dataset["settingindex"])].classList.add(
+      "active"
+    );
   };
 }
+
+pageList.onclick = (e) => {
+  const ele = e.target as HTMLDivElement;
+  if (ele?.tagName?.toLowerCase() == "a") {
+    const settingPage = document.querySelectorAll(
+      ".settingsPage"
+    ) as NodeListOf<HTMLDivElement>;
+    const activePage = [...settingPage].find((page) =>
+      page.classList.contains("active")
+    );
+    const nextPage = settingPage[parseInt(ele.dataset["pageindex"])];
+    pageNumber.innerText = `${
+      parseInt(nextPage.dataset["settingindex"]) + 1
+    }/5`;
+
+    activePage.classList.remove("active");
+    nextPage.classList.add("active");
+
+    pageList.querySelector(".active").classList.remove("active");
+    ele.classList.add("active");
+  }
+};
 
 function changeToggleButton(result: boolean) {
   toggleBtn.innerText = result ? "Turn Off" : "Turn On";
