@@ -52,8 +52,6 @@ let extensionModePopUp = "single";
 let allTabsModeIsOn_POPUP = false;
 let currentTabIsOn_POPUP = false;
 
-chrome.storage.local.set({ extensionModePopUp: "single" }).catch(() => {});
-
 chrome.storage.local.get("extensionTabs", async ({ extensionTabs }) => {
   if (!extensionTabs) extensionTabs = [];
 
@@ -93,9 +91,17 @@ toggleBtn.onclick = async () => {
       if (extTab) {
         extensionTabs = extensionTabs.filter((tab) => tab.id !== activeTab.id);
         currentTabIsOn_POPUP = false;
+        if (extTab.savedURL) {
+          enableOrDisableTab(activeTab, true);
+        }
       } else {
-        extensionTabs.push(activeTab);
+        const savedURL = isURLMatchPOPUP(
+          savedURLsInput.value.split("\n"),
+          activeTab.url
+        );
+        extensionTabs.push({ ...activeTab, savedURL });
         currentTabIsOn_POPUP = true;
+        enableOrDisableTab(activeTab);
       }
       chrome.storage.local.set({ extensionTabs });
       changeToggleButton(currentTabIsOn_POPUP);
@@ -119,12 +125,10 @@ toggleBtn.onclick = async () => {
 };
 
 currentTabExtMode.onclick = () => {
-  chrome.storage.local.set({ extensionModePopUp: "single" });
   changeExtensionMode("single");
 };
 
 allTabsExtMode.onclick = () => {
-  chrome.storage.local.set({ extensionModePopUp: "all" });
   changeExtensionMode("all");
 };
 
@@ -318,6 +322,20 @@ pageList.onclick = (e) => {
   }
 };
 
+function enableOrDisableTab(tab: chrome.tabs.Tab, disable = false) {
+  chrome.storage.local.get("disabledTabs", ({ disabledTabs }) => {
+    if (!disabledTabs) disabledTabs = [];
+    const disabledTab = disabledTabs.find((t) => t.id === tab.id);
+    if (!disable && disabledTab) {
+      disabledTabs = disabledTabs.filter((t) => t.id !== tab.id);
+    } else {
+      disabledTabs.push(tab);
+    }
+
+    chrome.storage.local.set({ disabledTabs });
+  });
+}
+
 function changeToggleButton(result: boolean) {
   toggleBtn.innerText = result ? "Turn Off" : "Turn On";
   toggleBtn.classList.remove(result ? "off" : "on");
@@ -332,4 +350,29 @@ function isValidURL(url: string) {
   } catch (err) {
     return false;
   }
+}
+
+function isURLMatchPOPUP(urls: string[], url: string) {
+  if (!url) return false;
+  const normalizeUrl = (url: string) =>
+    url
+      .replace(/^https?:\/\/(www\.)?(ww\d+\.)?/, "https://")
+      .replace(/\/([^?]+).*$/, "/$1")
+      .replace(/\/$/, "")
+      .toLowerCase();
+
+  const normalizedUrl = normalizeUrl(url);
+
+  for (const currentUrl of urls) {
+    const normalizedCurrentUrl = normalizeUrl(currentUrl);
+
+    if (
+      normalizedUrl === normalizedCurrentUrl ||
+      normalizedUrl.startsWith(normalizedCurrentUrl + "/")
+    ) {
+      return true; // Match found, return true
+    }
+  }
+
+  return false; // No match found, return false
 }

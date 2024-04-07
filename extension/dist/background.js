@@ -68,6 +68,13 @@ chrome.tabs.onCreated.addListener(async (tab) => {
     }
 });
 chrome.tabs.onUpdated.addListener(async (tabId, _changeInfo, tab) => {
+    const disabledTab = disabledTabs.find((t) => t.id === tabId);
+    if (disabledTab) {
+        if (new URL(disabledTab.url).hostname === new URL(tab.url).hostname)
+            return;
+        else
+            removeDisabledTab(disabledTab);
+    }
     let extTab = extensionTabs.find((t) => t.id === tabId);
     if (isURLMatch(settings.savedURLs, tab.url)) {
         if (!extTab)
@@ -161,6 +168,11 @@ chrome.storage.onChanged.addListener((changes) => {
     if (changes.allTabsModeIsOn?.newValue) {
         allTabsModeIsOn = changes.allTabsModeIsOn.newValue;
     }
+    if (changes.disabledTabs?.newValue) {
+        const newDisabledTabs = changes.disabledTabs.newValue;
+        disabledTabs.splice(0, disabledTabs.length, ...newDisabledTabs);
+        checkDisabledTabs();
+    }
 });
 chrome.runtime.onMessage.addListener(async (message) => {
     if (message.toggleSingle === true) {
@@ -203,6 +215,7 @@ async function updateExtensionTab(tab, instantSave = false) {
         active: tab.active,
         windowId: tab.windowId,
         windowActive: tab.windowId === (await getCurrentWindowId()),
+        savedURL: isURLMatch(settings.savedURLs, tab.url),
     };
     if (extTabIndex >= 0) {
         extensionTabs[extTabIndex] = updatedTabData;
@@ -225,6 +238,13 @@ function removeExtensionTab(extTab, instantSave = false) {
         saveExtTabs();
     else
         debouncedSaveExtTabs();
+}
+function removeDisabledTab(disabledTab) {
+    const disabledTabIndex = disabledTabs.findIndex((t) => t.id === disabledTab.id);
+    if (disabledTabIndex < 0)
+        return;
+    disabledTabs.splice(disabledTabIndex, 1);
+    checkDisabledTabs();
 }
 function saveExtTabs() {
     const extTabsSet = [...new Set(extensionTabs.map((t) => t.id))].map((id) => extensionTabs.find((t) => t.id === id));
@@ -264,6 +284,17 @@ function checkTabs() {
             }
         }
         debouncedSaveExtTabs();
+    });
+}
+function checkDisabledTabs() {
+    chrome.tabs.query({}).then((tabs) => {
+        for (let i = disabledTabs.length - 1; i >= 0; i--) {
+            if (!tabs.find((t) => t.id === disabledTabs[i].id)) {
+                disabledTabs.splice(i, 1);
+                console.log("Found non-existant disabled tab");
+            }
+        }
+        chrome.storage.local.set({ disabledTabs });
     });
 }
 function isURLMatch(urls, url) {
@@ -309,7 +340,7 @@ async function getCurrentWindowId() {
         allowedURLs = [...savedSettings.allowedURLs, ...builtInURLs];
         settings = savedSettings;
     });
-    chrome.storage.local.get(["extensionTabs"], async (res) => {
+    chrome.storage.local.get(["extensionTabs", "disabledTabs"], async (res) => {
         if (!res.extensionTabs) {
             chrome.storage.local.set({ extensionTabs: [], allTabsModeIsOn: false });
         }
@@ -318,5 +349,13 @@ async function getCurrentWindowId() {
         }
         if (extensionTabs.length)
             persistServiceWorker();
+        if (!res.disabledTabs) {
+            chrome.storage.local.set({ disabledTabs: [] });
+        }
+        else {
+            const disabledTabs = res.disabledTabs;
+            disabledTabs.splice(0, disabledTabs.length, ...disabledTabs);
+            checkDisabledTabs();
+        }
     });
 })();
