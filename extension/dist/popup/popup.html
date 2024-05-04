@@ -102,7 +102,7 @@
       flex-direction: column;
       box-shadow: 0 0 0.1rem 0.1rem black;
       position: relative;
-      height: 9rem;
+      height: 10.3rem;
     }
     .settings h2 {
       text-decoration: underline;
@@ -162,6 +162,7 @@
       justify-content: center;
       align-items: center;
       flex-direction: column;
+      width: 100%;
       height: 100%;
       position: relative;
       top: -10px;
@@ -245,18 +246,34 @@
     <div class="settings">
       <h2>Settings</h2>
       <div data-settingIndex="0" class="settingsPage list active">
-        <label for="turnOffOnWhen"
-          ><p style="font-size: 1rem">
-            Saved URLS
-            <i style="font-size: 0.7em; display: block"
-              >Turn automatically on a saved URL (seperate by new line)</i
-            >
-          </p></label
-        >
-        <textarea id="savedUrls" class="urlsList"></textarea>
+        <div id="savedURLsPage">
+          <label
+            ><p style="font-size: 1rem">
+              Saved URLS
+              <i style="font-size: 0.69em; display: block"
+                >Automatically activate on a saved URL (one URL per line)</i
+              >
+            </p></label
+          >
+          <textarea id="savedURLs" class="urlsList"></textarea>
+          <p><a href="#" id="changeToAllowedURLPage">Show Allowed URLs</a></p>
+        </div>
+        <div id="allowedURLsPage" class="remove">
+          <label
+            ><p style="font-size: 1rem">
+              Allowed URLS
+              <i style="font-size: 0.7em; display: block"
+                >Allow redirects to these URLS (one URL per line)</i
+              >
+            </p></label
+          >
+          <textarea id="allowedURLS" class="urlsList"></textarea>
+          <p><a href="#" id="changeToSavedURLPage">Show Saved URLs</a></p>
+        </div>
       </div>
+
       <div data-settingIndex="1" class="settingsPage">
-        <label for="turnOffOnWhen"
+        <label
           ><p style="font-size: 1rem">
             Tab exclusive or URL exclusive
             <i style="font-size: 0.7em; display: block"
@@ -271,7 +288,7 @@
         <i>Only applies for single toggled tabs</i>
       </div>
       <div data-settingIndex="2" class="settingsPage">
-        <label for="shortCutInput"
+        <label
           ><p style="font-size: 1rem">
             Shortcut
             <i style="font-size: 0.7em; display: block"
@@ -318,19 +335,25 @@
           to match the key(s) you want to use.
         </p>
       </div>
-      <div data-settingIndex="3" class="settingsPage list">
-        <label for="turnOffOnWhen"
+      <div data-settingIndex="3" class="settingsPage">
+        <label
           ><p style="font-size: 1rem">
-            Allowed URLS
+            Startup Options
             <i style="font-size: 0.7em; display: block"
-              >Allow redirects to these URLS (seperate by new line)</i
-            >
-          </p></label
-        >
-        <textarea id="allowedURLS" class="urlsList"></textarea>
+              >Allows the extension to be toggled on for all tabs from when
+              Chrome starts up.<br />
+            </i></p
+        ></label>
+
+        <select name="startupOptions" id="onStartup">
+          <option value="false">Off</option>
+          <option value="true">On</option>
+        </select>
+
+        <p>May not work if chrome is runs in background</p>
       </div>
       <div class="settingsPage" data-settingIndex="4">
-        <label for="preventURLChange"
+        <label
           ><p style="font-size: 1rem">
             Prevent Redirects on Same Tab
             <i style="font-size: 0.7em; display: block"
@@ -349,10 +372,10 @@
       <div id="nextSettings"><a href="#">Next Page &#8594;</a></div>
     </div>
     <div class="pageList">
-      <a href="#" data-pageIndex="0" class="active">Saved URLS</a>
+      <a href="#" data-pageIndex="0" class="active">URL Settings</a>
       <a href="#" data-pageIndex="1">Tab/URL Exclusive</a>
       <a href="#" data-pageIndex="2">Shortcuts</a>
-      <a href="#" data-pageIndex="3">Allowed URLs</a>
+      <a href="#" data-pageIndex="3">Startup Options</a>
       <a href="#" data-pageIndex="4">Same Tab Redirects</a>
     </div>
     <div class="shortCuts">

@@ -25,6 +25,7 @@ const shortCutSingleInput = document.querySelector(
 const shortCutAllInput = document.querySelector(
   "#shortCutAllInput"
 ) as HTMLInputElement;
+const onStartup = document.querySelector("#onStartup") as HTMLInputElement;
 
 const shortCutBtn = document.querySelector("#shortCutBtn") as HTMLSpanElement;
 const shortCutSingleDisplay = document.querySelector(
@@ -39,6 +40,13 @@ const backSettings = document.querySelector("#backSettings") as HTMLDivElement;
 const pageNumber = document.querySelector("#pageNumber") as HTMLDivElement;
 const pageList = document.querySelector(".pageList") as HTMLDivElement;
 
+const changeToAllowedURL = document.querySelector(
+  "#changeToAllowedURLPage"
+) as HTMLDivElement;
+const changeToSavedURL = document.querySelector(
+  "#changeToSavedURLPage"
+) as HTMLDivElement;
+
 const placeholderSettings = {
   tabExclusive: false,
   preventURLChange: false,
@@ -46,11 +54,23 @@ const placeholderSettings = {
   allowedURLs: ["https://youtube.com/@Tyson3101"],
   shortCutToggleSingleKeys: ["alt", "shift", "s"],
   shortCutToggleAllKeys: ["alt", "shift", "a"],
+  onStartup: false,
 };
 
 let extensionModePopUp = "single";
 let allTabsModeIsOn_POPUP = false;
 let currentTabIsOn_POPUP = false;
+
+// URL PAGE
+changeToAllowedURL.onclick = () => {
+  document.querySelector("#savedURLsPage").classList.add("remove");
+  document.querySelector("#allowedURLsPage").classList.remove("remove");
+};
+
+changeToSavedURL.onclick = () => {
+  document.querySelector("#allowedURLsPage").classList.add("remove");
+  document.querySelector("#savedURLsPage").classList.remove("remove");
+};
 
 chrome.storage.local.get("extensionTabs", async ({ extensionTabs }) => {
   if (!extensionTabs) extensionTabs = [];
@@ -200,6 +220,8 @@ function updateSettingsUI(settings: typeof placeholderSettings) {
   shortCutSingleDisplay.innerText =
     settings.shortCutToggleSingleKeys.join(" + ");
   shortCutAllDisplay.innerText = settings.shortCutToggleAllKeys.join(" + ");
+
+  onStartup.value = settings.onStartup ? "true" : "false";
 }
 
 function handleSettingsChange() {
@@ -240,6 +262,10 @@ function handleSettingsChange() {
       .map((s) => s.trim().toLowerCase());
 
     saveSettings("shortCutToggleAllKeys", shortCut);
+  };
+  onStartup.onchange = () => {
+    const onStartupValue = onStartup.value === "true";
+    saveSettings("onStartup", onStartupValue);
   };
 
   function saveSettings(setting: string, value: any) {
