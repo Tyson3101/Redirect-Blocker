@@ -20,6 +20,7 @@ const builtInURLs = [
   "https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_key_values",
   "https://github.com/Tyson3101/",
   "https://chrome.google.com/webstore/detail/redirect-blocker/egmgebeelgaakhaoodlmnimbfemfgdah",
+  "https://tyson3101.com",
 ];
 
 let allowedURLs = [...builtInURLs];
@@ -31,11 +32,27 @@ const initialSettings = {
   allowedURLs: ["https://youtube.com/@Tyson3101"],
   shortCutToggleSingleKeys: ["alt", "shift", "s"],
   shortCutToggleAllKeys: ["alt", "shift", "a"],
+  onStartup: false,
 };
 
 let settings = initialSettings;
 
 // Event Listeners
+chrome.runtime.onStartup.addListener(() => {
+  chrome.storage.sync.get("settings", (res) => {
+    const startUpSetting = (res.settings as typeof initialSettings).onStartup;
+    if (startUpSetting) {
+      chrome.tabs.query({}).then((allTabs) => {
+        const tabs = allTabs.filter((t) => t.id) as Tab[];
+        extensionTabs.splice(0, extensionTabs.length, ...tabs);
+        allTabsModeIsOn = true;
+        chrome.storage.local.set({ allTabsModeIsOn: true });
+        saveExtTabs();
+      });
+    }
+  });
+});
+
 chrome.tabs.onCreated.addListener(async (tab) => {
   const extTab = extensionTabs.find(
     (t) => t.active && t.windowId === tab.windowId
@@ -172,6 +189,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   const extTab = extensionTabs.find((t) => t.id === tabId);
   if (!extTab) return;
   removeExtensionTab(extTab);
+  checkTabs();
 });
 
 async function onTabMoved(tabId: number) {
@@ -415,7 +433,10 @@ async function getCurrentWindowId() {
       setExtensionTabs(res.extensionTabs);
     }
 
-    if (extensionTabs.length) persistServiceWorker();
+    if (extensionTabs.length) {
+      persistServiceWorker();
+      checkTabs();
+    }
 
     // Disabled Tabs
     if (!res.disabledTabs) {
