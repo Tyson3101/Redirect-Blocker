@@ -89,6 +89,7 @@ let combinedURLs: string[] = [];
 // Get the current tab ID
 chrome.runtime.sendMessage({ action: "getTabId" }, (response) => {
   tabId = response.tabId;
+  beginPreventionOfSameTabRedirects();
 });
 
 // Handle messages from other parts of the extension
@@ -119,7 +120,23 @@ function preventSameTabRedirect(event: Event) {
 function beginPreventionOfSameTabRedirects() {
   if (!isTabToggledOn || !isSameTabRedirectsPrevented) return;
 
+  // Set up a MutationObserver to watch for new <a> tags
+  const observer = new MutationObserver((mutationsList) => {
+    for (const mutation of mutationsList) {
+      if (mutation.type === "childList") {
+        mutation.addedNodes.forEach((node) => {
+          if (node instanceof HTMLAnchorElement) {
+            node.addEventListener("click", preventSameTabRedirect);
+          }
+        });
+      }
+    }
+  });
+
+  observer.observe(document.body, { childList: true, subtree: true });
+
   document.querySelectorAll("a").forEach((link) => {
+    link.removeEventListener("click", preventSameTabRedirect);
     link.addEventListener("click", preventSameTabRedirect);
   });
 }

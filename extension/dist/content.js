@@ -79,6 +79,7 @@ let isSameTabRedirectsPrevented = false;
 let combinedURLs = [];
 chrome.runtime.sendMessage({ action: "getTabId" }, (response) => {
     tabId = response.tabId;
+    beginPreventionOfSameTabRedirects();
 });
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "toggleTab") {
@@ -104,7 +105,20 @@ function preventSameTabRedirect(event) {
 function beginPreventionOfSameTabRedirects() {
     if (!isTabToggledOn || !isSameTabRedirectsPrevented)
         return;
+    const observer = new MutationObserver((mutationsList) => {
+        for (const mutation of mutationsList) {
+            if (mutation.type === "childList") {
+                mutation.addedNodes.forEach((node) => {
+                    if (node instanceof HTMLAnchorElement) {
+                        node.addEventListener("click", preventSameTabRedirect);
+                    }
+                });
+            }
+        }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
     document.querySelectorAll("a").forEach((link) => {
+        link.removeEventListener("click", preventSameTabRedirect);
         link.addEventListener("click", preventSameTabRedirect);
     });
 }
