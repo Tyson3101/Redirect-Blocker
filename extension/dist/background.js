@@ -14,7 +14,7 @@ const builtInURLs = [
 let allowedURLs = [...builtInURLs];
 const initialSettings = {
     tabExclusive: false,
-    preventURLChange: false,
+    preventSameTabRedirects: false,
     savedURLs: ["https://soap2day.day/", "https://vipleague.im/"],
     allowedURLs: ["https://youtube.com/@Tyson3101"],
     shortCutToggleSingleKeys: ["alt", "shift", "s"],
@@ -24,7 +24,7 @@ const initialSettings = {
 let settings = initialSettings;
 chrome.runtime.onStartup.addListener(() => {
     chrome.storage.sync.get("settings", (res) => {
-        const startUpSetting = res.settings.onStartup;
+        const startUpSetting = (res?.settings).onStartup;
         if (startUpSetting) {
             chrome.tabs.query({}).then((allTabs) => {
                 const tabs = allTabs.filter((t) => t.id);
@@ -103,21 +103,6 @@ chrome.tabs.onUpdated.addListener(async (tabId, _changeInfo, tab) => {
                     return removeExtensionTab(extTab, true);
             }
             return updateExtensionTab(tab);
-        }
-    }
-    if (!extTab || !tab.url)
-        return;
-    if (new URL(extTab.url).origin !== new URL(tab.url).origin) {
-        const url = new URL(tab.url);
-        if (new URL(extTab.url).hostname !== url.origin) {
-            if (settings.preventURLChange) {
-                return chrome.tabs.update(tabId, { url: extTab.url }).catch(() => null);
-            }
-            else {
-                if (!settings.tabExclusive && !allTabsModeIsOn) {
-                    return removeExtensionTab(extTab, true);
-                }
-            }
         }
     }
     if (extTab)
@@ -240,6 +225,7 @@ async function updateExtensionTab(tab, instantSave = false) {
     else {
         extensionTabs.push(updatedTabData);
     }
+    sendToggledStateToContentScript(tab.id, true);
     if (instantSave)
         saveExtTabs();
     else
@@ -251,6 +237,7 @@ function removeExtensionTab(extTab, instantSave = false) {
     if (extTabIndex < 0)
         return;
     extensionTabs.splice(extTabIndex, 1);
+    sendToggledStateToContentScript(extTab.id, false);
     if (instantSave)
         saveExtTabs();
     else
@@ -285,6 +272,9 @@ let debouncedSaveExtTabs = debounce(() => {
     if (!keepAlive)
         persistServiceWorker();
 }, 5000);
+function sendToggledStateToContentScript(tabId, isToggledOn) {
+    chrome.tabs.sendMessage(tabId, { action: "toggleTab", isToggledOn });
+}
 function persistServiceWorker() {
     if (keepAlive)
         clearInterval(keepAlive);
@@ -314,6 +304,15 @@ function checkDisabledTabs() {
         chrome.storage.local.set({ disabledTabs });
     });
 }
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === "getTabId") {
+        sendResponse({ tabId: sender.tab.id });
+    }
+    if (message.action === "getTabToggledState") {
+        const tabToggledState = extensionTabs.find((t) => t.id === sender.tab.id);
+        sendResponse({ tabToggledState: !!tabToggledState });
+    }
+});
 function isURLMatch(urls, url) {
     if (!url)
         return false;
@@ -349,7 +348,7 @@ async function getCurrentWindowId() {
 }
 (function initializeExtension() {
     chrome.storage.sync.get("settings", (res) => {
-        let savedSettings = res.settings;
+        let savedSettings = res?.settings;
         if (!savedSettings) {
             savedSettings = initialSettings;
             chrome.storage.sync.set({ settings: initialSettings });
@@ -358,7 +357,7 @@ async function getCurrentWindowId() {
         settings = savedSettings;
     });
     chrome.storage.local.get(["extensionTabs", "disabledTabs"], async (res) => {
-        if (!res.extensionTabs) {
+        if (!res?.extensionTabs) {
             chrome.storage.local.set({ extensionTabs: [], allTabsModeIsOn: false });
         }
         else {
@@ -368,7 +367,7 @@ async function getCurrentWindowId() {
             persistServiceWorker();
             checkTabs();
         }
-        if (!res.disabledTabs) {
+        if (!res?.disabledTabs) {
             chrome.storage.local.set({ disabledTabs: [] });
         }
         else {

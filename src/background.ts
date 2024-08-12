@@ -27,7 +27,7 @@ let allowedURLs = [...builtInURLs];
 
 const initialSettings = {
   tabExclusive: false,
-  preventURLChange: false,
+  preventSameTabRedirects: false,
   savedURLs: ["https://soap2day.day/", "https://vipleague.im/"],
   allowedURLs: ["https://youtube.com/@Tyson3101"],
   shortCutToggleSingleKeys: ["alt", "shift", "s"],
@@ -40,7 +40,7 @@ let settings = initialSettings;
 // Event Listeners
 chrome.runtime.onStartup.addListener(() => {
   chrome.storage.sync.get("settings", (res) => {
-    const startUpSetting = (res.settings as typeof initialSettings).onStartup;
+    const startUpSetting = (res?.settings as typeof initialSettings).onStartup;
     if (startUpSetting) {
       chrome.tabs.query({}).then((allTabs) => {
         const tabs = allTabs.filter((t) => t.id) as Tab[];
@@ -128,20 +128,22 @@ chrome.tabs.onUpdated.addListener(async (tabId, _changeInfo, tab) => {
     }
   }
 
+  /*
   // Redirect Same Tab
   if (!extTab || !tab.url) return;
   if (new URL(extTab.url).origin !== new URL(tab.url).origin) {
     const url = new URL(tab.url);
     if (new URL(extTab.url).hostname !== url.origin) {
-      if (settings.preventURLChange) {
+      if (settings.preventSameTabRedirects) {
         return chrome.tabs.update(tabId, { url: extTab.url }).catch(() => null);
-      } else {
-        if (!settings.tabExclusive && !allTabsModeIsOn) {
-          return removeExtensionTab(extTab, true);
-        }
+      }
+    } else {
+      if (!settings.tabExclusive && !allTabsModeIsOn) {
+        return removeExtensionTab(extTab, true);
       }
     }
   }
+  */
   if (extTab) updateExtensionTab(tab);
 });
 
@@ -281,6 +283,8 @@ async function updateExtensionTab(
     extensionTabs.push(updatedTabData);
   }
 
+  sendToggledStateToContentScript(tab.id, true);
+
   // Save extTabs
   if (instantSave) saveExtTabs();
   else debouncedSaveExtTabs();
@@ -292,6 +296,7 @@ function removeExtensionTab(extTab: Tab, instantSave: boolean = false) {
   const extTabIndex = extensionTabs.findIndex((t) => t.id === extTab.id);
   if (extTabIndex < 0) return;
   extensionTabs.splice(extTabIndex, 1);
+  sendToggledStateToContentScript(extTab.id, false);
   if (instantSave) saveExtTabs();
   else debouncedSaveExtTabs();
 }
@@ -334,6 +339,10 @@ let debouncedSaveExtTabs = debounce(() => {
   if (!keepAlive) persistServiceWorker();
 }, 5000);
 
+function sendToggledStateToContentScript(tabId: number, isToggledOn: boolean) {
+  chrome.tabs.sendMessage(tabId, { action: "toggleTab", isToggledOn });
+}
+
 function persistServiceWorker() {
   if (keepAlive) clearInterval(keepAlive);
   keepAlive = setInterval(() => {
@@ -366,6 +375,16 @@ function checkDisabledTabs() {
     chrome.storage.local.set({ disabledTabs });
   });
 }
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "getTabId") {
+    sendResponse({ tabId: sender.tab.id });
+  }
+  if (message.action === "getTabToggledState") {
+    const tabToggledState = extensionTabs.find((t) => t.id === sender.tab.id);
+    sendResponse({ tabToggledState: !!tabToggledState });
+  }
+});
 
 // Utility Functions
 // Chat GPT
@@ -417,7 +436,7 @@ async function getCurrentWindowId() {
 // Initialization
 (function initializeExtension() {
   chrome.storage.sync.get("settings", (res) => {
-    let savedSettings = res.settings as typeof initialSettings;
+    let savedSettings = res?.settings as typeof initialSettings;
     if (!savedSettings) {
       savedSettings = initialSettings;
       chrome.storage.sync.set({ settings: initialSettings });
@@ -427,7 +446,7 @@ async function getCurrentWindowId() {
   });
   chrome.storage.local.get(["extensionTabs", "disabledTabs"], async (res) => {
     // Extension Tabs
-    if (!res.extensionTabs) {
+    if (!res?.extensionTabs) {
       chrome.storage.local.set({ extensionTabs: [], allTabsModeIsOn: false });
     } else {
       setExtensionTabs(res.extensionTabs);
@@ -439,7 +458,7 @@ async function getCurrentWindowId() {
     }
 
     // Disabled Tabs
-    if (!res.disabledTabs) {
+    if (!res?.disabledTabs) {
       chrome.storage.local.set({ disabledTabs: [] });
     } else {
       const disabledTabs = res.disabledTabs as Tab[];
