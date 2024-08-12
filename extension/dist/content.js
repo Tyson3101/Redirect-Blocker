@@ -158,6 +158,7 @@ chrome.storage.sync.get("settings", (result) => {
                 window.origin,
             ];
         }
+        beginPreventionOfSameTabRedirects();
     }
 });
 chrome.runtime.sendMessage({ action: "getTabToggledState" }, (response) => {
@@ -183,6 +184,10 @@ chrome.storage.onChanged.addListener((changes) => {
         const settings = changes.settings.newValue;
         if (settings) {
             isSameTabRedirectsPrevented = settings.preventSameTabRedirects;
+            if (isTabToggledOn && isSameTabRedirectsPrevented)
+                beginPreventionOfSameTabRedirects();
+            else
+                endPreventionOfSameTabRedirects();
             combinedURLs = [
                 ...settings.allowedURLs,
                 ...settings.savedURLs,
