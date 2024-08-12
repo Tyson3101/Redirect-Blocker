@@ -4,7 +4,7 @@ const allTabsExtMode = document.querySelector(".allTabsExtMode");
 const savedURLsInput = document.querySelector("#savedURLs");
 const allowedURLsInput = document.querySelector("#allowedURLS");
 const tabExclusiveSelect = document.querySelector("#turnOffOnWhen");
-const preventURLSelect = document.querySelector("#preventURLChange");
+const preventSameTabRedirectsSelect = document.querySelector("#preventSameTabRedirects");
 const shortCutSingleInput = document.querySelector("#shortCutSingleInput");
 const shortCutAllInput = document.querySelector("#shortCutAllInput");
 const onStartup = document.querySelector("#onStartup");
@@ -19,7 +19,7 @@ const changeToAllowedURL = document.querySelector("#changeToAllowedURLPage");
 const changeToSavedURL = document.querySelector("#changeToSavedURLPage");
 const placeholderSettings = {
     tabExclusive: false,
-    preventURLChange: false,
+    preventSameTabRedirects: false,
     savedURLs: ["https://soap2day.day/", "https://vipleague.im/"],
     allowedURLs: ["https://youtube.com/@Tyson3101"],
     shortCutToggleSingleKeys: ["alt", "shift", "s"],
@@ -168,7 +168,9 @@ function updateSettingsUI(settings) {
     savedURLsInput.value = settings.savedURLs.join("\n");
     allowedURLsInput.value = settings.allowedURLs.join("\n");
     tabExclusiveSelect.value = settings.tabExclusive ? "tab" : "url";
-    preventURLSelect.value = settings.preventURLChange ? "true" : "false";
+    preventSameTabRedirectsSelect.value = settings.preventSameTabRedirects
+        ? "true"
+        : "false";
     shortCutSingleInput.value = settings.shortCutToggleSingleKeys.join(" + ");
     shortCutAllInput.value = settings.shortCutToggleAllKeys.join(" + ");
     shortCutSingleDisplay.innerText =
@@ -195,9 +197,9 @@ function handleSettingsChange() {
         const tabExclusive = tabExclusiveSelect.value === "tab";
         saveSettings("tabExclusive", tabExclusive);
     };
-    preventURLSelect.onchange = () => {
-        const preventURLChange = preventURLSelect.value === "true";
-        saveSettings("preventURLChange", preventURLChange);
+    preventSameTabRedirectsSelect.onchange = () => {
+        const preventSameTabRedirects = preventSameTabRedirectsSelect.value === "true";
+        saveSettings("preventSameTabRedirects", preventSameTabRedirects);
     };
     shortCutSingleInput.onchange = () => {
         const shortCut = shortCutSingleInput.value

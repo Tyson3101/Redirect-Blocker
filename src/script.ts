@@ -16,8 +16,8 @@ const allowedURLsInput = document.querySelector(
 const tabExclusiveSelect = document.querySelector(
   "#turnOffOnWhen"
 ) as HTMLSelectElement;
-const preventURLSelect = document.querySelector(
-  "#preventURLChange"
+const preventSameTabRedirectsSelect = document.querySelector(
+  "#preventSameTabRedirects"
 ) as HTMLSelectElement;
 const shortCutSingleInput = document.querySelector(
   "#shortCutSingleInput"
@@ -49,7 +49,7 @@ const changeToSavedURL = document.querySelector(
 
 const placeholderSettings = {
   tabExclusive: false,
-  preventURLChange: false,
+  preventSameTabRedirects: false,
   savedURLs: ["https://soap2day.day/", "https://vipleague.im/"],
   allowedURLs: ["https://youtube.com/@Tyson3101"],
   shortCutToggleSingleKeys: ["alt", "shift", "s"],
@@ -212,7 +212,9 @@ function updateSettingsUI(settings: typeof placeholderSettings) {
   savedURLsInput.value = settings.savedURLs.join("\n");
   allowedURLsInput.value = settings.allowedURLs.join("\n");
   tabExclusiveSelect.value = settings.tabExclusive ? "tab" : "url";
-  preventURLSelect.value = settings.preventURLChange ? "true" : "false";
+  preventSameTabRedirectsSelect.value = settings.preventSameTabRedirects
+    ? "true"
+    : "false";
 
   shortCutSingleInput.value = settings.shortCutToggleSingleKeys.join(" + ");
   shortCutAllInput.value = settings.shortCutToggleAllKeys.join(" + ");
@@ -243,9 +245,10 @@ function handleSettingsChange() {
     const tabExclusive = tabExclusiveSelect.value === "tab";
     saveSettings("tabExclusive", tabExclusive);
   };
-  preventURLSelect.onchange = () => {
-    const preventURLChange = preventURLSelect.value === "true";
-    saveSettings("preventURLChange", preventURLChange);
+  preventSameTabRedirectsSelect.onchange = () => {
+    const preventSameTabRedirects =
+      preventSameTabRedirectsSelect.value === "true";
+    saveSettings("preventSameTabRedirects", preventSameTabRedirects);
   };
   shortCutSingleInput.onchange = () => {
     const shortCut = shortCutSingleInput.value
