@@ -448,3 +448,9 @@ async function getCurrentWindowId() {
     }
   });
 })();
+
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === "install") {
+    chrome.tabs.create({ url: "dist/popup/install.html" });
+  }
+});
