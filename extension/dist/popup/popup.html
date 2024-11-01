@@ -3,226 +3,10 @@
     rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
   />
-  <style>
-    * {
-      text-align: center;
-    }
-    body {
-      min-width: 320px;
-      padding: 1em 1em;
-      padding-bottom: 0em;
-      background-color: rgb(194, 221, 229);
-    }
-    h1 {
-      font-size: 2.2rem;
-      margin-bottom: 0;
-      padding-bottom: 0;
-    }
 
-    .desc {
-      display: block;
-      position: relative;
-      top: -20px;
-    }
+  <!--- Styles by https://github.com/Cristofer543 -->
+  <link rel="stylesheet" href="popupStyles.css" />
 
-    #adChrome {
-      margin-top: 0;
-      padding-top: 0;
-      bottom: 0;
-      position: relative;
-    }
-
-    button {
-      cursor: pointer;
-    }
-
-    .toggleContainer div *:not(#shortCutBtn) {
-      margin: 0;
-    }
-
-    .toggleBtn {
-      border: 1px solid black;
-      height: 3.7rem;
-      width: 10rem;
-      font-size: 1.5rem;
-      margin-bottom: 0;
-    }
-    .off {
-      background-color: rgb(157, 231, 157);
-      cursor: pointer;
-    }
-    .on {
-      background-color: rgb(243, 139, 139);
-      cursor: pointer;
-    }
-    .off:hover {
-      background-color: rgb(135, 196, 135);
-    }
-    .on:hover {
-      background-color: rgb(205, 119, 119);
-    }
-
-    .extensionModes {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 1rem;
-      font-size: 1rem;
-      margin-bottom: 0;
-    }
-
-    .extensionModes a {
-      cursor: pointer;
-      text-decoration: none;
-    }
-
-    .extensionModes .selected {
-      text-decoration: underline;
-      font-weight: bold;
-    }
-
-    #shortCutBtn {
-      margin: 0.3rem 0;
-    }
-
-    .shortCuts {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-      margin-bottom: 1.2em;
-      font-size: 0.8rem;
-    }
-    .settings {
-      margin-top: 0.5rem;
-      padding: 0 0.5em 0.5em 0.5em;
-      display: flex;
-      justify-content: top;
-      align-items: center;
-      flex-direction: column;
-      box-shadow: 0 0 0.1rem 0.1rem black;
-      position: relative;
-      height: 10.3rem;
-    }
-    .settings h2 {
-      text-decoration: underline;
-    }
-    .settings * {
-      margin: 0;
-    }
-    .settings label {
-      font-weight: bold;
-    }
-    .settings select {
-      margin-bottom: 0.2rem;
-    }
-
-    .shortCutSettings {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-    }
-
-    .shortCutSettings span {
-      display: inline-block;
-      text-align: center;
-      font-weight: bold;
-    }
-
-    .shortCutSettings .hideShortCut {
-      display: none;
-    }
-
-    #nextSettings {
-      position: absolute;
-      right: 3px;
-      bottom: 3px;
-      background-color: rgb(194, 221, 229);
-    }
-    #backSettings {
-      position: absolute;
-      left: 3px;
-      bottom: 3px;
-      background-color: rgb(194, 221, 229);
-    }
-    #pageNumber {
-      position: absolute;
-      bottom: 0;
-      margin: auto;
-      background-color: rgb(194, 221, 229);
-    }
-
-    .settingsPage {
-      display: none;
-    }
-
-    .settingsPage.active {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-      width: 100%;
-      height: 100%;
-      position: relative;
-      top: -10px;
-    }
-    .settingsPage.list.active {
-      display: block;
-      top: 0;
-    }
-
-    .pageList {
-      display: block;
-      margin-top: 5px;
-      margin-bottom: 0;
-    }
-    .pageList * {
-      display: inline-block;
-      margin-right: 11px;
-      text-decoration: none;
-    }
-    .pageList .active {
-      text-decoration: underline;
-      font-weight: 500;
-    }
-
-    .shortCut {
-      border: 1px solid black;
-      background-color: rgb(165, 195, 204);
-      width: 68%;
-      margin-bottom: 0.2rem;
-      position: absolute;
-      top: 1rem;
-      padding: 0 0.8rem;
-    }
-    .shortCut span {
-      padding: 0.2em;
-    }
-
-    .shortCut span.titleShortCut {
-      font-weight: bold;
-    }
-
-    .shortCut span#shortCutDisplay {
-      font-weight: normal;
-      background-color: rgba(220, 209, 209, 0.4);
-    }
-
-    .remove {
-      display: none;
-    }
-
-    textarea.urlsList {
-      width: 90%;
-      text-align: left;
-      height: 14vh;
-      resize: none;
-      border: 1px solid black;
-      background-color: rgb(165, 195, 204);
-      padding: 0.2em;
-    }
-  </style>
   <body>
     <h1>Redirect Blocker</h1>
     <span class="desc"
@@ -231,6 +15,19 @@
     ></span>
     <div class="toggleContainer">
       <button class="toggleBtn">Start</button>
+
+      <div class="shortCuts remove">
+        <div class="shortCut">
+          <p>
+            <span class="titleShortCut">Toggle Active Tab:</span>
+            <span id="shortCutSingleDisplay">alt + shift + s</span>
+          </p>
+          <p>
+            <span class="titleShortCut">Toggle All Tabs:</span>
+            <span id="shortCutAllDisplay">alt + shift + a</span>
+          </p>
+        </div>
+      </div>
 
       <div class="extensionModes">
         <p>
@@ -306,7 +103,7 @@
           </p></label
         >
         <div class="shortCutSettings">
-          <span class="shortCutSingleContainer"
+          <span class="shortCutSingleContainer" style="display: block"
             >Current Tab:
             <input
               type="text"
@@ -315,7 +112,7 @@
               value="alt + shift + s"
               style="width: 40%"
           /></span>
-          <span class="shortCutAllContainer hideShortCut"
+          <span class="shortCutAllContainer" style="display: block"
             >All Tabs:
             <input
               type="text"
@@ -378,19 +175,7 @@
       <a href="#" data-pageIndex="3">Startup Options</a>
       <a href="#" data-pageIndex="4">Same Tab Redirects</a>
     </div>
-    <div class="shortCuts">
-      <div class="shortCut remove">
-        <p>
-          <span class="titleShortCut">Toggle Active Tab:</span>
-          <span id="shortCutSingleDisplay">alt + shift + s</span>
-        </p>
-        <p>
-          <span class="titleShortCut">Toggle All Tabs:</span>
-          <span id="shortCutAllDisplay">alt + shift + a</span>
-        </p>
-      </div>
-    </div>
-    <i
+    <i id="footerRedirectNote"
       >If redirect needed, just toogle off then back on,<br />Or go to a tab/url
       without the extension activated.</i
     >

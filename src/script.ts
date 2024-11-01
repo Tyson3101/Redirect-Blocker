@@ -153,7 +153,11 @@ allTabsExtMode.onclick = () => {
 };
 
 shortCutBtn.onclick = () => {
-  document.querySelector(".shortCut").classList.toggle("remove");
+  document.querySelector(".shortCuts").classList.toggle("remove");
+  shortCutBtn.innerText =
+    shortCutBtn.innerText === "Show Shortcuts"
+      ? "Hide Shortcuts"
+      : "Show Shortcuts";
 };
 
 function changeExtensionMode(result: "single" | "all") {
@@ -162,13 +166,6 @@ function changeExtensionMode(result: "single" | "all") {
   if (result === "single") {
     extensionModePopUp = "single";
     currentTabExtMode.classList.add("selected");
-
-    document
-      .querySelector(".shortCutSingleContainer")
-      .classList.remove("hideShortCut");
-    document
-      .querySelector(".shortCutAllContainer")
-      .classList.add("hideShortCut");
 
     if (currentTabIsOn_POPUP) {
       changeToggleButton(true);
