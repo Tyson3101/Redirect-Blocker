@@ -1,128 +1,239 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+
+<head>
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Need Help?</title>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
-    />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
     <style>
-      body {
-        background-color: rgb(72, 49, 49);
-        color: whitesmoke;
-        font-family: sans-serif;
-        text-align: center;
-      }
-      h1 {
-        font-size: 2rem;
-      }
-      p {
-        font-size: max(1.5vw, 1rem);
-      }
-      a {
-        color: rgb(135, 135, 232);
-      }
-      .author {
-        position: absolute;
-        bottom: 15px;
-        border: 0;
-        left: 50%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        transform: translateX(-50%);
-        text-decoration: none;
-        display: inline;
-        color: whitesmoke;
-      }
-      .youtube {
-        padding: 2rem;
-        display: inline-block;
-      }
+        :root {
+            --primary-color: #7c7cff;
+            --bg-color: #111111;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --text-color: #ffffff;
+            --link-color: #64ffda;
+            --link-hover-color: #9effeb;
+        }
 
-      .advertisement {
-        color: rgb(239, 239, 239);
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        padding: 10px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-      }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', system-ui, sans-serif;
+            line-height: 1.7;
+            margin: 0;
+            min-height: 100vh;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-      .advertisement p {
-        font-size: min(1.3vw, 15px);
-      }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 2rem;
+        }
 
-      .advertisement a {
-        color: rgb(239, 239, 239);
-      }
+        h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin: 1rem 0;
+            background: linear-gradient(45deg, var(--primary-color), #a5a5ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 2rem 0;
+        }
+
+        .logo {
+            filter: drop-shadow(0 0 10px rgba(124, 124, 255, 0.3));
+            display: block;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .possible-fixes {
+            text-align: left;
+        }
+
+        .possible-fixes h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--primary-color);
+        }
+
+        .possible-fixes p {
+            margin: 0.8rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .possible-fixes p:before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: var(--primary-color);
+        }
+
+        .warning {
+            color: #ff6b6b;
+            font-size: 0.9rem;
+            padding: 1rem;
+            border-radius: 8px;
+            background: rgba(255, 107, 107, 0.1);
+            margin: 1rem 0;
+        }
+
+        .social-bar {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 1rem 2rem;
+            border-radius: 100px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .social-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-color);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-bottom: none;
+        }
+
+        .social-link:hover {
+            color: var(--link-color);
+            transform: translateY(-2px);
+            border-bottom: none;
+        }
+
+        .social-link i {
+            font-size: 1.5rem;
+        }
+
+        .advertisement {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            max-width: 250px;
+        }
+
+        a {
+            color: var(--link-color);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-bottom: 1px solid transparent;
+        }
+
+        a:hover {
+            color: var(--link-hover-color);
+            border-bottom: 1px solid var(--link-hover-color);
+        }
+
+        @media (max-width: 768px) {
+            .social-bar {
+                position: static;
+                transform: none;
+                margin-top: 2rem;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .advertisement {
+                position: static;
+                margin-top: 2rem;
+            }
+
+            body {
+                padding: 1rem;
+            }
+        }
     </style>
-  </head>
-  <body>
-    <h1>Redirect Blocker</h1>
-    <img src="../../img/Icon128.png" width="64" height="64" alt="" />
-    <p>
-      If you face are facing issue(s), please report them on the
-      <a
-        target="_blank"
-        href="https://github.com/Tyson3101/Redirect-Blocker/issues"
-        >Github page</a
-      >
-      with helpful information.
-    </p>
-    <p>
-      If you have a feature request / suggestion, please report them on the
-      <a
-        target="_blank"
-        href="https://github.com/Tyson3101/Redirect-Blocker/issues"
-        >Github page</a
-      >
-    </p>
-    <br />
-    <div>
-      <h1 style="font-size: 1.9em">Possible Fixes for Issues:</h1>
-      <p>- Restart Chrome and re-open/close tabs</p>
-      <p>- Refresh/Re-toggle of tabs/extension may be needed</p>
-      <p>- Reinstallation of extension may be needed</p>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Redirect Blocker</h1>
+        <div class="logo-container">
+            <img src="../../img/Icon128.png" width="64" height="64" alt="Logo" class="logo" />
+        </div>
+        
+        <div class="card">
+            <p>
+                Having issues? Report them on the
+                <a target="_blank" href="https://github.com/Tyson3101/Redirect-Blocker/issues">Github issues page</a>
+                with detailed information.
+            </p>
+            <p>
+                If you have suggestions or feature requests, you can also report them on the
+                <a target="_blank" href="https://github.com/Tyson3101/Redirect-Blocker/issues">Github issues page</a>
+            </p>
+        </div>
+
+        <div class="card possible-fixes">
+            <h2>Possible fixes for common issues:</h2>
+            <p>Restart Chrome and re-open/close tabs</p>
+            <p>Refresh/Re-toggle of tabs/extension may be needed</p>
+            <p>Reinstallation of extension may be needed</p>
+        </div>
+
+        <div class="warning">
+            Before creating an issue on Github, try the above solutions.
+        </div>
     </div>
-    <span style="color: red; font-size: 1em"
-      >Before creating an issue on github, try the above.</span
-    >
-    <div class="author">
-      <h3>
-        <a
-          href="https://youtube.com/@Tyson3101"
-          style="text-decoration: none; color: whitesmoke"
-          >By Tyson3101</a
-        >
-        <hr />
-      </h3>
-      <a
-        aria-label="Github Page"
-        target="_blank"
-        href="https://github.com/Tyson3101/Redirect-Blocker"
-        class="github-corner"
-      >
-        <i style="font-size: 6rem; color: white" class="fa fa-github"></i
-      ></a>
-      <a class="youtube" href="https://youtube.com/@Tyson3101">
-        <i class="fa fa-youtube" style="font-size: 6rem; color: red"></i>
-      </a>
+    <br>
+    <br>
+    <div class="social-bar">
+        <a href="https://youtube.com/@Tyson3101" class="social-link">
+            <i class="fa fa-youtube"></i>
+            <span>Tyson3101</span>
+        </a>
+        <a href="https://github.com/Tyson3101/Redirect-Blocker" class="social-link">
+            <i class="fa fa-github"></i>
+            <span>Github</span>
+        </a>
     </div>
 
     <div class="advertisement">
-      <p>
-        <span style="font-weight: bold">My other extensions:</span> <br /><br />
-        <a
-          href="https://chrome.google.com/webstore/detail/auto-youtube-shorts-scroller/ckbnikemebopgknkpgjlkbffpkkhblbe"
-          >Auto Youtube Shorts Scroller</a
-        >
-      </p>
+        <p>
+            <strong>My other extensions:</strong>
+            <br><br>
+            <a href="https://chrome.google.com/webstore/detail/auto-youtube-shorts-scroller/ckbnikemebopgknkpgjlkbffpkkhblbe">
+                Auto Youtube Shorts Scroller
+            </a>
+        </p>
     </div>
-  </body>
+</body>
+
 </html>
