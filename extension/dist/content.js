@@ -77,11 +77,12 @@ let tabId = null;
 let isTabToggledOn = false;
 let isSameTabRedirectsPrevented = false;
 let combinedURLs = [];
+let preventingSameTabRedirects = false;
 chrome.runtime.sendMessage({ action: "getTabId" }, (response) => {
     tabId = response.tabId;
     beginPreventionOfSameTabRedirects();
 });
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     if (request.action === "toggleTab") {
         isTabToggledOn = !!request.isToggledOn;
         if (isTabToggledOn) {
@@ -93,11 +94,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 });
 function preventSameTabRedirect(event) {
-    const aTag = event.target;
-    if (!isTabToggledOn || !isSameTabRedirectsPrevented)
+    let aTag = event.target;
+    if (!isTabToggledOn || !isSameTabRedirectsPrevented || !aTag)
         return;
+    if (aTag.tagName !== "A") {
+        console.log("[Redirect Blocker] Anchor tag not clicked, checking parent(s)", aTag.closest("a"));
+        aTag = aTag.closest("a");
+    }
+    console.log("[Redirect Blocker] Checking for if allowed Redirect:", aTag?.href);
     if (aTag && aTag.href) {
         if (!isURLMatchSameTab(combinedURLs, aTag.href)) {
+            console.log("[Redirect Blocker] Same Tab Redirect blocked:", aTag.href);
             event.preventDefault();
         }
     }
@@ -105,12 +112,27 @@ function preventSameTabRedirect(event) {
 function beginPreventionOfSameTabRedirects() {
     if (!isTabToggledOn || !isSameTabRedirectsPrevented)
         return;
+    if (preventingSameTabRedirects)
+        return;
+    preventingSameTabRedirects = true;
+    console.log("[Redirect Blocker] Starting to prevent same tab redirects");
     const observer = new MutationObserver((mutationsList) => {
         for (const mutation of mutationsList) {
-            if (mutation.type === "childList") {
+            if (mutation.type === "childList" && isSameTabRedirectsPrevented) {
                 mutation.addedNodes.forEach((node) => {
-                    if (node instanceof HTMLAnchorElement) {
-                        node.addEventListener("click", preventSameTabRedirect);
+                    if (node instanceof HTMLElement) {
+                        console.log("[Redirect Blocker] New node added, checking for <a> tags", node);
+                        if (node.closest("a")) {
+                            console.log("[Redirect Blocker] <a> tag found, adding event listener to prevent same tab redirect", node);
+                            node.addEventListener("click", preventSameTabRedirect);
+                        }
+                        else {
+                            console.log("[Redirect Blocker] No <a> tag found, checking for child nodes");
+                            node.querySelectorAll("a").forEach((link) => {
+                                console.log("[Redirect Blocker] <a> tag found, adding event listener to prevent same tab redirect", link);
+                                link.addEventListener("click", preventSameTabRedirect);
+                            });
+                        }
                     }
                 });
             }
@@ -123,6 +145,8 @@ function beginPreventionOfSameTabRedirects() {
     });
 }
 function endPreventionOfSameTabRedirects() {
+    console.log("[Redirect Blocker] Stopping to prevent same tab redirects");
+    preventingSameTabRedirects = false;
     document.querySelectorAll("a").forEach((link) => {
         link.removeEventListener("click", preventSameTabRedirect);
     });
@@ -195,6 +219,7 @@ chrome.storage.onChanged.addListener((changes) => {
         }
     }
     if (changes.settings) {
+        console.log("[Redirect Blocker] Saved Settings changes detected:", changes);
         const settings = changes.settings.newValue;
         if (settings) {
             isSameTabRedirectsPrevented = settings.preventSameTabRedirects;

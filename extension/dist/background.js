@@ -23,8 +23,10 @@ const initialSettings = {
 };
 let settings = initialSettings;
 chrome.runtime.onStartup.addListener(() => {
+    console.log("[Redirect Blocker] Extension started up");
     chrome.storage.sync.get("settings", (res) => {
         const startUpSetting = (res?.settings).onStartup;
+        console.log("[Redirect Blocker] Fetched startup setting:", startUpSetting);
         if (startUpSetting) {
             chrome.tabs.query({}).then((allTabs) => {
                 const tabs = allTabs.filter((t) => t.id);
@@ -32,11 +34,13 @@ chrome.runtime.onStartup.addListener(() => {
                 allTabsModeIsOn = true;
                 chrome.storage.local.set({ allTabsModeIsOn: true });
                 saveExtTabs();
+                console.log("[Redirect Blocker] Activated all tabs mode and saved state");
             });
         }
     });
 });
 chrome.tabs.onCreated.addListener(async (tab) => {
+    console.log("[Redirect Blocker] New tab created:", tab);
     const extTab = extensionTabs.find((t) => t.active && t.windowId === tab.windowId);
     if (!extTab && !allTabsModeIsOn)
         return;
@@ -51,15 +55,18 @@ chrome.tabs.onCreated.addListener(async (tab) => {
                 return clearInterval(urlPropertiesInterval);
             intMs += 20;
             if (updatedTab.url || updatedTab.pendingUrl) {
+                console.log("[Redirect Blocker] Checking redirect for created tab");
                 checkRedirect(updatedTab, extTab).catch(() => null);
                 clearInterval(urlPropertiesInterval);
             }
             else if (intMs >= 1000) {
+                console.log("[Redirect Blocker] Timeout while waiting for tab URL");
                 return clearInterval(urlPropertiesInterval);
             }
         }, 20);
     }
     async function checkRedirect(tab, extTab) {
+        console.log("[Redirect Blocker] Evaluating redirection for tab:", tab.url);
         if (extTab) {
             const combinedURLs = [
                 ...allowedURLs,
@@ -67,6 +74,7 @@ chrome.tabs.onCreated.addListener(async (tab) => {
                 new URL(extTab.url).origin,
             ];
             if (isURLMatch(combinedURLs, tab.pendingUrl || tab.url)) {
+                console.log("[Redirect Blocker] URL is allowed — keeping tab");
                 if (createdTabActive) {
                     await chrome.tabs.update(tab.id, { active: true }).catch(() => null);
                 }
@@ -75,10 +83,13 @@ chrome.tabs.onCreated.addListener(async (tab) => {
                 }
                 return;
             }
-            else
+            else {
+                console.log("[Redirect Blocker] URL is not allowed — closing tab");
                 await chrome.tabs.remove(tab.id).catch(() => null);
+            }
         }
         else if (allTabsModeIsOn) {
+            console.log("[Redirect Blocker] All tabs mode active — tracking new tab");
             await updateExtensionTab(tab, true);
         }
     }
@@ -88,20 +99,27 @@ chrome.tabs.onUpdated.addListener(async (tabId, _changeInfo, tab) => {
     if (disabledTab) {
         if (new URL(disabledTab.url).hostname === new URL(tab.url).hostname)
             return;
-        else
+        else {
+            console.log("[Redirect Blocker] Removing disabled tab due to URL change:", disabledTab);
             removeDisabledTab(disabledTab);
+        }
     }
     let extTab = extensionTabs.find((t) => t.id === tabId);
     if (isURLMatch(settings.savedURLs, tab.url)) {
-        if (!extTab)
+        if (!extTab) {
+            console.log("[Redirect Blocker] URL is saved and not tracked — updating tab:", tab.url);
             return (extTab = (await updateExtensionTab(tab, true)));
+        }
     }
     if (isURLMatch([...settings.savedURLs, ...allowedURLs], tab.url)) {
         if (extTab) {
             if (new URL(extTab.url).origin !== new URL(tab.url).origin) {
-                if (!settings.tabExclusive && !allTabsModeIsOn)
+                if (!settings.tabExclusive && !allTabsModeIsOn) {
+                    console.log("[Redirect Blocker] Tab changed origin and exclusive mode off — removing:", tab.url);
                     return removeExtensionTab(extTab, true);
+                }
             }
+            console.log("[Redirect Blocker] Updating extension tab after allowed URL match:", tab.url);
             return updateExtensionTab(tab);
         }
     }
@@ -112,15 +130,19 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
     const tab = await chrome.tabs.get(activeInfo.tabId).catch(() => null);
     if (!tab)
         return;
+    console.log("[Redirect Blocker] Tab activated:", tab);
     for (let extTab of extensionTabs) {
         if (extTab.id === tab.id) {
+            console.log("[Redirect Blocker] Updating activated extension tab:", extTab);
             updateExtensionTab(tab);
             continue;
         }
         if (extTab.active && extTab.windowId === tab.windowId) {
             const extChromeTab = await chrome.tabs.get(extTab.id).catch(() => null);
-            if (!extChromeTab)
+            if (!extChromeTab) {
+                console.log("[Redirect Blocker] Cannot find tab — removing:", extTab);
                 return removeExtensionTab(extTab);
+            }
             updateExtensionTab(extChromeTab);
             continue;
         }
@@ -138,6 +160,7 @@ chrome.windows.onCreated.addListener(async (window) => {
             new URL(extTab.url).origin,
         ];
         if (!isURLMatch(combinedURLs, popupTab.pendingUrl || popupTab.url)) {
+            console.log("[Redirect Blocker] Blocking unauthorized popup window:", popupTab);
             chrome.windows.remove(window.id).catch(() => null);
         }
     }
@@ -146,6 +169,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
     const extTab = extensionTabs.find((t) => t.id === tabId);
     if (!extTab)
         return;
+    console.log("[Redirect Blocker] Tab closed — removing from extension tabs:", extTab);
     removeExtensionTab(extTab);
     checkTabs();
 });
@@ -154,6 +178,9 @@ async function onTabMoved(tabId) {
     if (!extTab)
         return;
     const tab = await chrome.tabs.get(tabId).catch(() => null);
+    if (!tab)
+        return;
+    console.log("[Redirect Blocker] Tab moved — updating extension tab:", tab);
     updateExtensionTab(tab);
 }
 chrome.tabs.onAttached.addListener(onTabMoved);
@@ -162,17 +189,21 @@ chrome.storage.onChanged.addListener((changes) => {
     const newSettings = changes.settings?.newValue;
     if (newSettings) {
         allowedURLs = [...newSettings.allowedURLs, ...builtInURLs];
-        settings = changes.settings.newValue;
+        settings = newSettings;
+        console.log("[Redirect Blocker] Settings updated:", settings);
     }
     if (changes.extensionTabs?.newValue) {
         setExtensionTabs(changes.extensionTabs.newValue);
+        console.log("[Redirect Blocker] Extension tabs synced from storage");
     }
     if (changes.allTabsModeIsOn?.newValue) {
         allTabsModeIsOn = changes.allTabsModeIsOn.newValue;
+        console.log("[Redirect Blocker] All tabs mode is now:", allTabsModeIsOn);
     }
     if (changes.disabledTabs?.newValue) {
         const newDisabledTabs = changes.disabledTabs.newValue;
         disabledTabs.splice(0, disabledTabs.length, ...newDisabledTabs);
+        console.log("[Redirect Blocker] Disabled tabs updated:", disabledTabs);
         checkDisabledTabs();
     }
 });
@@ -183,9 +214,11 @@ chrome.runtime.onMessage.addListener(async (message) => {
             return;
         const extTab = extensionTabs.find((t) => t.id === tab.id);
         if (extTab) {
+            console.log("[Redirect Blocker] Toggling off tab:", extTab);
             removeExtensionTab(extTab, true);
         }
         else {
+            console.log("[Redirect Blocker] Toggling on tab:", tab);
             updateExtensionTab(tab, true);
         }
     }
@@ -193,17 +226,20 @@ chrome.runtime.onMessage.addListener(async (message) => {
         if (allTabsModeIsOn) {
             extensionTabs.splice(0, extensionTabs.length);
             allTabsModeIsOn = false;
+            console.log("[Redirect Blocker] Turning OFF all tabs mode");
         }
         else {
             const tabs = await chrome.tabs.query({}).catch(() => []);
             extensionTabs.splice(0, extensionTabs.length, ...tabs);
             allTabsModeIsOn = true;
+            console.log("[Redirect Blocker] Turning ON all tabs mode with tabs:", tabs);
         }
         saveExtTabs();
         chrome.storage.local.set({ allTabsModeIsOn: allTabsModeIsOn });
     }
 });
 async function setExtensionTabs(newExtensionTabs) {
+    console.log("[Redirect Blocker] Setting new extension tabs:", newExtensionTabs);
     extensionTabs.splice(0, extensionTabs.length, ...newExtensionTabs);
     saveExtTabs();
 }
@@ -220,9 +256,11 @@ async function updateExtensionTab(tab, instantSave = false) {
         savedURL: isURLMatch(settings.savedURLs, tab.url),
     };
     if (extTabIndex >= 0) {
+        console.log("[Redirect Blocker] Updating existing extension tab:", updatedTabData);
         extensionTabs[extTabIndex] = updatedTabData;
     }
     else {
+        console.log("[Redirect Blocker] Adding new extension tab:", updatedTabData);
         extensionTabs.push(updatedTabData);
     }
     sendToggledStateToContentScript(tab.id, true);
@@ -253,7 +291,7 @@ function removeDisabledTab(disabledTab) {
 function saveExtTabs() {
     const extTabsSet = [...new Set(extensionTabs.map((t) => t.id))].map((id) => extensionTabs.find((t) => t.id === id));
     extensionTabs.splice(0, extensionTabs.length, ...extTabsSet);
-    console.log("extTabs", extensionTabs);
+    console.log("[Redirect Blocker] Current tabs with extension enabled:", extensionTabs);
     chrome.storage.local.set({ extensionTabs: extensionTabs });
     if (!extensionTabs.length) {
         allTabsModeIsOn = false;
@@ -287,7 +325,7 @@ function checkTabs() {
         for (let i = extensionTabs.length - 1; i >= 0; i--) {
             if (!tabs.find((t) => t.id === extensionTabs[i].id)) {
                 extensionTabs.splice(i, 1);
-                console.log("Found non-existant tab");
+                console.log("[Redirect Blocker] Found non-existant tab");
             }
         }
         debouncedSaveExtTabs();
@@ -298,7 +336,7 @@ function checkDisabledTabs() {
         for (let i = disabledTabs.length - 1; i >= 0; i--) {
             if (!tabs.find((t) => t.id === disabledTabs[i].id)) {
                 disabledTabs.splice(i, 1);
-                console.log("Found non-existant disabled tab");
+                console.log("[Redirect Blocker] Found non-existant disabled tab");
             }
         }
         chrome.storage.local.set({ disabledTabs });
