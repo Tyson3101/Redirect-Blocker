@@ -8,8 +8,8 @@
 
 ## How to download?
 
-**Option 1** – Install it from the [Chrome Web Store](https://chrome.google.com/webstore/detail/redirect-blocker/egmgebeelgaakhaoodlmnimbfemfgdah)
-
+**Option 1** – Install it from the [Chrome Web Store](https://chrome.google.com/webstore/detail/redirect-blocker/egmgebeelgaakhaoodlmnimbfemfgdah)/[Firefox addon](https://addons.mozilla.org/)
+ 
 **Option 2** – Install it from source:
 
 - Clone/download this repo,
